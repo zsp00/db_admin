@@ -16,17 +16,26 @@ class Task extends Common
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
         if($pcInfo){
-            $result['date'] = $pcInfo;
         }else{
             $this->error('您所在的分公司不参与');
         }
-        $Task = new \app\common\model\Task();
         $map = [
-            'deptNo'    =>  $userInfo['DEPT_NO'],
             'year'  =>  $pcInfo['currYear'],
             'content'   =>  ['like','%'.$keyword.'%'],
             'status'    =>  '1'
         ];
+        //获取权限
+        $Identity = new Identity();
+        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
+
+        $Task = new \app\common\model\Task();
+        if(!in_array('2',$identitys)){
+            $OrgDept = new OrgDept();
+            $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
+            $map['deptNo'] = $deptNo;
+        }
+
+
         if($level !== ''){
             $map['level'] = $level;
         }
@@ -34,6 +43,7 @@ class Task extends Common
         $Identity = new Identity();
         $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
         $result['identitys'] = $identitys;
+        $result['date'] = $pcInfo;
         $this->success($result);
     }
 
@@ -48,7 +58,7 @@ class Task extends Common
         $ParticipateDept = new ParticipateDept();
         $result['isParticipate'] = $ParticipateDept->isParticipate($userInfo['DEPT_NO']) ? true : false;
         $OrgDept = new OrgDept();
-        $result['deptName'] = $OrgDept->getNameList($userInfo['DEPT_NO']);
+        $result['deptName'] = $OrgDept->getNameList($userInfo['DEPTNO']);
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
         if($pcInfo){

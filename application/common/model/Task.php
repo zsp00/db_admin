@@ -36,10 +36,17 @@ class Task extends Model
             ->select();
         $result['total'] = $model->count();
         if($list){
+            $OrgDept = new OrgDept();
             $taskDataStatusMsg = new TaskData();
             foreach($list as $k=>$v){
                 $list[$k]['statusMsg'] = $this->statusMsg[$v['status']];
-                $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[$v['taskDataStatus']];
+                $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
+                if(isset($v['taskDataStatus']) && $v['taskDataStatus'] != null){
+                    $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[$v['taskDataStatus']];
+                }else{
+                    $list[$k]['taskDataStatusMsg'] = '';
+                }
+
             }
         }
         $result['data'] = $list;

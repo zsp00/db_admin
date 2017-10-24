@@ -136,4 +136,13 @@ class OrgDept extends Model
 		}
 	}
 
+	public function getDeptNo($deptNo){
+		$deptInfo = $this->where(['DEPT_NO'=>$deptNo])->find();
+		if($deptInfo['LEVEL'] === 3){
+			return $deptNo;
+		}else if($deptInfo['LEVEL'] === 4){
+			return $deptInfo['PARENT_DEPT_NO'];
+		}
+	}
+
 }
