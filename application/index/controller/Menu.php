@@ -7,31 +7,12 @@ namespace app\index\controller;
  * Time: 17:08
  */
 class Menu extends Common{
-    public function getMenu($pId = 0){
+    
+    public function getMenus(){
         $userInfo = getUserInfo();
-        $list = Model('Menu')->getListByEmpNo($userInfo['EMP_NO'],$pId);
+        $list = Model('Menu')->getListByEmpNo($userInfo['EMP_NO']);
+        $list = Model('Menu')->toTree($list);
         if($list){
-            $this->success($list);
-        }else{
-            $this->error('您无权访问此系统');
-        }
-    }
-
-    public function getSubmenu($router) {
-        $routers = explode('/',$router);
-        $info = Model('Menu')->where(['router'=>'/'.$routers[1]])->find();
-        if(!$info) {
-            $this->error('此功能未找到');
-        }
-        if($info['pId'] === 0) {
-            $pId = $info['id'];
-        }else{
-            $pId = $info['pId'];
-        }
-        $userInfo = getUserInfo();
-        $list = Model('Menu')->getListByEmpNo($userInfo['EMP_NO'],$pId);
-        if($list){
-            //$list = Model('Menu')->toSubmenu($list);
             $this->success($list);
         }else{
             $this->error('您无权访问此系统');

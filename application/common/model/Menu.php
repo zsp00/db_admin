@@ -21,7 +21,7 @@ class Menu extends Model
     /*
      * 获取当前用户有哪几个大分类
      */
-    public function getListByEmpNo($empNo,$pId=0){
+    public function getListByEmpNo($empNo){
         //获取当前用户的标签
         $labelIds = Model('LabelValue')->getIdsByEmpNo($empNo);
 
@@ -68,17 +68,41 @@ class Menu extends Model
             ->column('mId');
 
             $result = $this
-                ->where(function ($query) use ($menuIds, $pId){
+                ->where(function ($query) use ($menuIds){
                     $query->where([
                         'id'=>['in',$menuIds],
-                        'status'    =>  1,
-                        'pId'   =>  $pId
+                        'status'    =>  1
                     ]);
                 })
                 ->order('sort asc')
                 ->select();
 
 
+        return $result;
+    }
+
+    public function toTree($list){
+        $tree = [];
+        foreach($list as $k => $v){
+            if($v['pId'] === 0){
+                $list[$k]['child'] = $this->childs($v['id'],$list);
+            }
+        }
+        foreach ($list as $k=>$v){
+            if($v['pId'] === 0){
+                $tree[] = $v;
+            }
+        }
+        return $tree;
+    }
+
+    public function childs($id,$list){
+        $result = [];
+        foreach ($list as $k=>$v){
+            if($v['pId'] === $id){
+                $result[] = $v;
+            }
+        }
         return $result;
     }
 
