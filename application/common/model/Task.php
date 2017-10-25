@@ -23,7 +23,7 @@ class Task extends Model
             $where['task.'.$k] = $v;
         }
         $model = $this->alias('task')
-            ->join('task_data', 'task.id = task_data.id and task_data.mouth = "'.$mouth.'"', 'left')
+            ->join('task_data', 'task.id = task_data.tId and task_data.mouth = "'.$mouth.'"', 'left')
             ->where($where)
             ->field([
                 'task.*',
