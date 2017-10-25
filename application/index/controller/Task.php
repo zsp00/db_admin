@@ -169,6 +169,49 @@ class Task extends Common
             $this->error('添加日志失败!');
         }
     }
+    //提交
+    public function submits($id)
+    {
+        //获取用户的权限
+        $userInfo = getUserInfo();
+        $Identity = new Identity();
+        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
+        $TaskDataModel = new TaskData();
+        $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
+        if(!$taskDataInfo){
+            $this->error('该条记录未找到');
+        }
+        switch ($taskDataInfo['status']) {
+            // 如果部门领导未提交
+            case '1':
+                break;
+            // 部门领导已经提交办公室未确认
+            case '2':
+                // 如果是部门领导
+                if (in_array('1',$identitys)) {
+                    $this->error('部门领导已经提交此任务，您无权修改');
+                } else if(in_array('2',$identitys)){
+                    break;
+                } else {
+                    $this->error('部门领导已经提交此任务，您无权修改');
+                }
+                break;
+            // 办公室已经确认
+            case '3':
+                $this->error('办公室已经确认，禁止修改');
+                break;
+            default:
+                $this->error('该月任务状态异常');
+        }
+        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => '2']);
+        if ($updateStatus === false) {
+            $this->error($TaskDataModel->getError());
+        }else{
+            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'submit','empNo'=>$userInfo['EMP_NO']];
+            $result = Model('TaskLog')->save($tasklog);
+            $this->success('提交成功!');
+        }
+    }
     //确认
     public function confirm($id)
     {
@@ -242,6 +285,21 @@ class Task extends Common
         }
         $this->success($result);
     }
-    
+
+    //这个是测试信息没用的方法为了导入数据库信息
+    public function submit()
+    {
+        $result = Model('Task')->select();
+        die;
+        $info = [];
+        foreach($result as $k=>$v){
+            $info[$k]['tId'] = $v['id'];
+            $info[$k]['mouth'] = 9;
+            $info[$k]['status'] = 1;
+        }
+        foreach($info as $v){
+            $data = Model('TaskData')->insert($v);
+        }
+    }
     
 }
