@@ -276,7 +276,7 @@ class Task extends Common
     public function getLogs($tId,$mouth)
     {
         $tDId = Model('TaskData')->where(['tId'=>$tId,'mouth'=>$mouth])->value('id');
-        $result = Model('TaskLog')->where(['tDId'=>$tDId])->select();
+        $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
         if($result){
             foreach($result as $k=>$v){
                 $result[$k]['empNo'] = Model('UserEmp')->getUserRealName($v['empNo']);
