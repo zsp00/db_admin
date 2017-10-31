@@ -14,6 +14,15 @@ class OrgComp extends Model
 		return $this->where(['COMP_NO'=>$COMP_NO])->find();
 	}
 	
+	/**
+	 * 获取公司名称
+	 * @param  int $compNo 公司Id
+	 * @return string         公司名称
+	 */
+	public function getCompName($compNo)
+	{
+		return $this->where(['COMP_NO'=>$COMP_NO])->value('COMP_NAME');
+	}
 
 	public function getList(){
 		return $this->select();

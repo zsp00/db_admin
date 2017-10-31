@@ -14,11 +14,6 @@ class Label extends Model
     ];
     protected $update = [];
 
-    protected $type = [
-        'createTime' =>  'timestamp',
-        'updateTime' =>  'timestamp'
-    ];
-
     public function getLabelName($type,$value)
     {
         switch($type)
