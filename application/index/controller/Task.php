@@ -20,7 +20,7 @@ class Task extends Common
             $this->error('您所在的分公司不参与');
         }
         $map = [
-            'year'  =>  $pcInfo['currYear'],
+            'releaseTime'  =>  $pcInfo['currYear'],
             'content'   =>  ['like','%'.$keyword.'%'],
             'status'    =>  '1'
         ];
@@ -39,6 +39,7 @@ class Task extends Common
         if($level !== ''){
             $map['level'] = $level;
         }
+
         $result = $Task->getList($map,$pcInfo['currMouth'],$page,$listRow);
         $Identity = new Identity();
         $identitys = $Identity->getIdentity($userInfo['EMP_NO']);

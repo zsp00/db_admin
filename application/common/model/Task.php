@@ -12,7 +12,7 @@ class Task extends Model
         '1'     =>  '未完成',
         '2'     =>  '完成'
     ];
-    public function getList($map, $mouth, $page = 1, $listRow = 20) {
+    public function getList($map, $tDate, $page = 1, $listRow = 20) {
         $result = [
             'data'  =>  null,
             'total' =>  0,
@@ -23,7 +23,7 @@ class Task extends Model
             $where['task.'.$k] = $v;
         }
         $model = $this->alias('task')
-            ->join('task_data', 'task.id = task_data.tId and task_data.mouth = "'.$mouth.'"', 'left')
+            ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"', 'left')
             ->where($where)
             ->field([
                 'task.*',
