@@ -58,7 +58,10 @@ class Task extends Model
         $info = $this->where(['id'=>$id])->find();
         if($info) {
             $TaskData = new TaskData();
-            $taskDataList = $TaskData->where(['tId'=>$id])->order(['mouth desc'])->select();
+            $taskDataList = $TaskData->where(['tId'=>$id])->order(['tDate desc'])->select();
+            foreach($taskDataList as $k=>$v){
+                $taskDataList[$k]['tDate'] = substr($v['tDate'],4);
+            }
             $taskDataStatusMsg = new TaskData();
             $info['taskDataList'] = $taskDataList;
             $info['statusMsg'] = $this->statusMsg[$info['status']];
