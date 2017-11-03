@@ -35,6 +35,15 @@ class Menu extends Common{
     }
 
     //添加菜单
+	public function checkRepeat($menuName)
+    {
+        $result = model('Menu')->where('name',$menuName)->find();
+        if($result){
+            $this->error();
+        }else{
+            $this->success();
+        }
+    }
     public function addMenu($MenuInfo)
     {
         if(empty($MenuInfo)){
@@ -54,13 +63,12 @@ class Menu extends Common{
             $this->error('添加菜单失败！');
         }
     }
-    //查询需要编辑菜单
+    //编辑菜单
     public function editMenuId($MenuId)
     {
         $result = Model('Menu')->where(['id' => $MenuId])->find();
         $this->success($result);
-    }
-    //编辑菜单
+    }    
     public function editMenu($Menu)
     {
         $MenuInfo =[
@@ -94,4 +102,39 @@ class Menu extends Common{
             $this->error('删除菜单失败！');
         }
     }
+	
+	//菜单启用
+	public function enable($id)
+	{
+		if(empty($id)){
+			$this->error('请选择数据');
+		}
+		foreach($id as $k=>$v){
+			Model('Menu')->where(['id' => $v['id']])->update(['status' => '1']);
+		}
+		$this->success('启用成功');
+	}
+	
+	//菜单禁用
+	public function disable($id)
+	{
+		if(empty($id)){
+			$this->error('请选择数据');
+		}
+		foreach($id as $k=>$v){
+			Model('Menu')->where(['id' => $v['id']])->update(['status' => '0']);
+		}
+		$this->success('禁用成功');
+	}	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }

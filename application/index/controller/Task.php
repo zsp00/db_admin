@@ -276,7 +276,7 @@ class Task extends Common
     //获取日志
     public function getLogs($tId,$mouth)
     {
-        $tDId = Model('TaskData')->where(['tId'=>$tId,'mouth'=>$mouth])->value('id');
+        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$mouth])->value('id');
         $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
         if($result){
             foreach($result as $k=>$v){
@@ -287,20 +287,101 @@ class Task extends Common
         $this->success($result);
     }
 
-    //这个是测试信息没用的方法为了导入数据库信息
-    public function submit()
+    /*
+     * 任务分类列表
+     */
+    public function getTypeList()
     {
-        $result = Model('Task')->select();
-        die;
-        $info = [];
-        foreach($result as $k=>$v){
-            $info[$k]['tId'] = $v['id'];
-            $info[$k]['mouth'] = 9;
-            $info[$k]['status'] = 1;
-        }
-        foreach($info as $v){
-            $data = Model('TaskData')->insert($v);
+        $result = Model('TaskType')->getTypeList();
+        if($result){
+            $this->success($result);
         }
     }
-    
+
+    /*
+    * 任务分类的添加
+    */
+    public function checkRepeat($typeName)
+    {
+        $result = model('TaskType')->where('typeName',$typeName)->find();
+        if($result){
+            $this->error();
+        }else{
+            $this->success();
+        }
+    }
+    public function addType($typeInfo)
+    {
+        if(!isset($typeInfo)){
+            $this->error('没有添加数据');
+        }
+        $userInfo = getUserInfo();
+        $typeInfo['creator'] = $userInfo['EMP_NO'];
+        $result = Model('TaskType')->save($typeInfo);
+        if($result){
+            $this->success('添加成功！');
+        }else{
+            $this->error('添加失败!');
+        }
+
+    }
+
+    /*
+    * 任务分类的编辑
+    */
+    public function editTypeSelt($typeId)
+    {
+        $result = Model('TaskType')->where(['id' => $typeId])->find();
+        if($result){
+            $this->success($result);
+        }
+    }
+    public function editType($typeInfo)
+    {
+        if(!isset($typeInfo)){
+            $this->error('没有修改数据');
+        }
+        $result = Model('TaskType')->update($typeInfo);
+        if($result){
+            $this->success('修改成功!');
+        }else{
+            $this->error('修改失败!');
+        }
+
+    }
+
+    /*
+    * 任务分类的删除
+    */
+    public function delType($typeId)
+    {
+		if($typeId == '0'){
+			$this->error('选择数据!');
+		}
+        if(is_numeric($typeId)){
+            $result = Model('TaskType')->where(['id' => $typeId])->delete();
+            if($result){
+                $this->success('删除成功!');
+            }else{
+                $this->error('删除失败!');
+            }
+        }else{
+            foreach($typeId as $k=>$v){
+                Model('TaskType')->where(['id' => $v['id']])->delete();
+            }
+            $this->success('删除成功!');
+        }
+
+    }
+
+    public function oprationSta($typeId,$status)
+    {
+        if($status == '0'){
+            Model('TaskType')->where(['id' => $typeId])->update(['status' => '1']);
+            $this->success('启用成功');
+        }else{
+            Model('TaskType')->where(['id' => $typeId])->update(['status' => '0']);
+            $this->success('禁用成功');
+        }
+    }
 }
