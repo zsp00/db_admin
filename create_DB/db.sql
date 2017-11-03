@@ -6,6 +6,7 @@ create table d_process
   deptNo               varchar(8)                not null            comment '所属部门Id',
   level                tinyint                   not null            comment '流程的步骤数量',
   creator              varchar(10)               not null            comment '流程创建者',
+  lastModifier         varchar(10)               not null            comment '流程创建者',
   createTime           int                       not null,
   updateTime           int                       not null,
   status               boolean                   not null
