@@ -64,6 +64,7 @@ CREATE TABLE d_task
 (
   id                   int                       AUTO_INCREMENT primary key,
   deptNo               varchar(255)              NOT NULL            COMMENT '组织编号',
+  pId                  int                       not null            comment '该任务应用需要执行的流程的Id',
   serialNumber         int                       DEFAULT 0           COMMENT '序号',
   content              varchar(500)              NOT NULL            COMMENT '任务',
   releaseTime          int                       NOT NULL            COMMENT '发布时间，时间戳',

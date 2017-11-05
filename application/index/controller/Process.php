@@ -47,56 +47,48 @@ class Process extends Common
 		unset($data['process'][0]);
 
 		$insertProcess = array(
-			'name'		=>	trim($data['name']),
-			'deptNo'	=>	$data['deptValue'],
-			'level'		=>	count($data['process']),
-			'creator'	=>	$member['EMP_NO']
+			'name'			=>	trim($data['name']),
+			'deptNo'		=>	$data['deptValue'],
+			'level'			=>	count($data['process']),
+			'creator'		=>	$member['EMP_NO'],
+			'lastModifier'	=>	$member['EMP_NO']
 		);
 		Db::startTrans();
-		try
+		$resProcess = model('Process')->save($insertProcess);
+		if ($resProcess)
 		{
-			$resProcess = model('Process')->save($insertProcess);
-			if ($resProcess)
+			$pId = model('Process')->id;
+			$insertStep = array();
+			foreach ($data['process'] as $k => $v)
 			{
-				$pId = model('Process')->id;
-				$insertStep = array();
-				foreach ($data['process'] as $k => $v)
-				{
-					$audit = array(
-						'dept'	=>	$v['auditor'],
-						'notIn'	=>	$v['notIn']
-					);
-					$insertStep[] = array(
-						'pId'		=>	$pId,
-						'levelNo'	=>	$k,
-						'audit_user'=>	json_encode($audit),
-						'pDescribe'	=>	strip_tags(trim($v['describe']))
-					);
-				}
+				$audit = array(
+					'dept'	=>	$v['auditor'],
+					'notIn'	=>	$v['notIn']
+				);
+				$insertStep[] = array(
+					'pId'		=>	$pId,
+					'levelNo'	=>	$k,
+					'audit_user'=>	json_encode($audit),
+					'pDescribe'	=>	strip_tags(trim($v['describe']))
+				);
+			}
 
-				$res = model('ProcessData')->isUpdate(false)->saveAll($insertStep);
-				if ($res)
-				{
-					$this->success();
-					Db::commit(); 
-				}
-				else
-				{
-					$this->error('添加流程步骤失败');
-					Db::rollback();
-				}
+			$res = model('ProcessData')->isUpdate(false)->saveAll($insertStep);
+			if ($res)
+			{
+				Db::commit(); 
+				$this->success();
 			}
 			else
 			{
-				$this->error('添加流程主体失败！');
 				Db::rollback();
+				$this->error('添加流程步骤失败');
 			}
 		}
-		catch (\Exception $e)
+		else
 		{
-		    // 回滚事务
-		    $this->error('抛出异常！');
-		    Db::rollback();
+			Db::rollback();
+			$this->error('添加流程主体失败！');
 		}
 	}
 

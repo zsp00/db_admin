@@ -34,6 +34,7 @@ class Task extends Model
             ]);
         $list = $model->page($page,$listRow)
             ->select();
+        echo $this->getLastSql();exit;
         $result['total'] = $model->count();
         if($list){
             $OrgDept = new OrgDept();
