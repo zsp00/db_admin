@@ -81,9 +81,8 @@ class Task extends Common
         if($result){
             $OrgDept = new OrgDept();
             $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
-            $Identity = new Identity();
-            $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
-            $result['identitys'] = $identitys;
+            $identitys = Model('ProcessData')->getStepIds($result['pId']);
+            $result['identitys'] = $identitys['0'];
             $this->success($result);
         }else{
             $this->error('未找到');
