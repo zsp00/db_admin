@@ -377,7 +377,7 @@ class Task extends Common
         }
 
     }
-
+    
     public function oprationSta($typeId,$status)
     {
         if($status == '0'){
