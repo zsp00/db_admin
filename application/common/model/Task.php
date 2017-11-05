@@ -30,11 +30,11 @@ class Task extends Model
                 'task_data.completeSituation',
                 'task_data.problemSuggestions',
                 'task_data.analysis',
-                'task_data.status'  =>  'taskDataStatus'
+                'task_data.currentLevel'    =>  'taskDataStatus'
+                // 'task_data.status'  =>  'taskDataStatus'
             ]);
         $list = $model->page($page,$listRow)
             ->select();
-        echo $this->getLastSql();exit;
         $result['total'] = $model->count();
         if($list){
             $OrgDept = new OrgDept();
