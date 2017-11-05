@@ -12,7 +12,7 @@ class Task extends Common
 {
     protected $_participateLevel = null;
 
-    public function getList($page, $listRow, $keyword = '', $level = '')
+    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '')
     {
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
@@ -22,7 +22,6 @@ class Task extends Common
             $this->error('您所在的分公司不参与');
         }
         $map = [
-            // 'releaseTime'  =>  $pcInfo['currYear'],
             'content'   =>  ['like','%'.$keyword.'%'],
             'status'    =>  '1'
         ];
@@ -41,6 +40,8 @@ class Task extends Common
         if($level !== ''){
             $map['level'] = $level;
         }
+        if ($typeId !== '')
+            $map['typeId'] = $typeId;
 
         $tDate = date('Ym');
 
