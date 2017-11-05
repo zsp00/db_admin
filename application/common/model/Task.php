@@ -5,7 +5,6 @@ use think\Model;
 
 class Task extends Model
 {
-
     protected $statusMsg = [
         '-1'    =>  '删除',
         '0'     =>  '禁用',
@@ -30,8 +29,8 @@ class Task extends Model
                 'task_data.completeSituation',
                 'task_data.problemSuggestions',
                 'task_data.analysis',
-                'task_data.currentLevel'    =>  'taskDataStatus'
-                // 'task_data.status'  =>  'taskDataStatus'
+                'task_data.currentLevel'    =>  'taskDataStatus',
+                'task_data.status'          =>  'currMonthStatus'
             ]);
         $list = $model->page($page,$listRow)
             ->select();
@@ -39,15 +38,62 @@ class Task extends Model
         if($list){
             $OrgDept = new OrgDept();
             $taskDataStatusMsg = new TaskData();
-            foreach($list as $k=>$v){
+            foreach($list as $k=>$v)
+            {
+                // 获取当前用户能参与到流程的那些步骤
+                $stepIds = model('ProcessData')->getStepIds($v['pId']);
+                $processLevel = model('Process')->where('id', $v['pId'])->value('level');
+
                 $list[$k]['statusMsg'] = $this->statusMsg[$v['status']];
                 $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
-                if(isset($v['taskDataStatus']) && $v['taskDataStatus'] != null){
-                    $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[$v['taskDataStatus']];
+                $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
+                $list[$k]['typeName'] = model('TaskType')->where('id', $v['typeId'])->value('typeName');
+
+                $currStep = $v['taskDataStatus'];
+                // 获取任务显示的当前状态
+                if(isset($currStep) && $currStep != null){
+                    /* 如果参与到倒数第二步:
+                     * 未提交：任务流程进行到倒数第二步或还没有进行到倒数第二步，
+                     * 待确认：任务流程进行到倒数第一部，
+                     * 已确认：任务流程进行到最后一步，并且该任务该月已关闭
+                     */
+                    if ($stepIds[0] == $processLevel - 1)
+                    {
+                        if ($currStep <= $processLevel - 1)
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[1];
+                        elseif ($currStep == $processLevel && $v['currMonthStatus'] == 0)       // 已确认
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[3];
+                        else
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[2];
+                    }
+                    /* 如果参与到倒数第一步:
+                     * 待确认：任务流程进行到倒数第一部，
+                     * 已确认：任务流程进行到最后一步，并且该任务该月已关闭
+                     */
+                    elseif ($stepIds[0] == $processLevel)
+                    {
+                        if ($currStep == $processLevel && $v['currMonthStatus'] == 0)
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[3];
+                        else
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[2];
+                    }
+                    /* 如果任务在其他的步骤中
+                     * 未提交：任务流程进行到当前用户能参与到的步骤中
+                     * 待确认：任务流程进行到用户能参与到的下一步
+                     * 已确认：任务流程进行到用户能参与到的下两步
+                     */
+                    else
+                    {
+                        if ($currStep <= $stepIds[0])
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[1];
+                        elseif ($currStep == end($stepIds) + 1)
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[2];
+                        else
+                            $list[$k]['taskDataStatusMsg'] = $taskDataStatusMsg->statusMsg[3];
+                    }
                 }else{
                     $list[$k]['taskDataStatusMsg'] = '';
                 }
-
             }
         }
         $result['data'] = $list;

@@ -75,7 +75,6 @@ class ProcessData extends Model
             if ($flag === true)
                 $stepNums[] = $v['levelNo'];     
         }
-        dump($stepNums);
-        // return $stepNums;
+        return $stepNums;
     }
 }
