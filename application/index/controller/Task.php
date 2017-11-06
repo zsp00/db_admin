@@ -155,8 +155,6 @@ class Task extends Common
      */
     public function submits($id, $currentLevel, $nextLevel)
     {
-        dump($id);
-        die;
         //获取用户的信息
         $userInfo = getUserInfo();
         $TaskDataModel = new TaskData();
@@ -165,7 +163,7 @@ class Task extends Common
             $this->error('该条记录未找到');
 
         // 下一步不能大于总步数
-        $level = model('Task')->where('id', $taskDataInfo['tId'])->value('level');
+        $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
         if ($nextLevel < $level)
             $update = ['currentLevel' => $currentLevel + 1, 'nextLevel' => $nextLevel + 1];
         else
@@ -199,7 +197,7 @@ class Task extends Common
             $this->error('该条记录未找到');
 
 
-        $level = model('Task')->where('id', $taskDataInfo['tId'])->value('level');
+        $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
         if ($currentLevel >= $level)
             $update = ['currentLevel' => $currentLevel - 1];
         else
@@ -227,38 +225,47 @@ class Task extends Common
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
             $this->error('该条记录未找到');
-        
-        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1]);
+        $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
+        if ($currentLevel >= $level)
+            $update = ['currentLevel' => $currentLevel - 1];
+        else
+            $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
+
+        $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
         if ($updateStatus === false)
             $this->error($TaskDataModel->getError());
         else
+            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'reject','empNo'=>$userInfo['EMP_NO']];
+            $result = Model('TaskLog')->save($tasklog);
             $this->success('驳回成功!');
     }
 
     /**
-     * 领导最终确认任务
-     * @param  int $id           任务每月详情Id，task_data表中的Id
-     * @param  ing $currentLevel 当前流程进行到哪一步
-     * @return array               确认结果
+     * 确认任务
      */
-    public function confirm($id, $currentLevel)
+    public function confirm($id)
     {
         //获取用户的权限
         $userInfo = getUserInfo();
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
-        if(!$taskDataInfo)
+        if(!$taskDataInfo){
             $this->error('该条记录未找到');
-        
+        }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => 0]);
 
-        if ($updateStatus === false)
+        if ($updateStatus === false) {
             $this->error($TaskDataModel->getError());
-        else
-            $this->success('确认任务成功!');
+        }else{
+            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$id,'type'=>'confirm','empNo'=>$userInfo['EMP_NO']];
+            $result = Model('TaskLog')->save($tasklog);
+            $this->success('确认成功!');
+        }
     }
 
-    //完成
+    /**
+     * 完成任务
+     */
     public function complete($id)
     {
         $userInfo = getUserInfo();
@@ -268,16 +275,20 @@ class Task extends Common
         if($result){
             $tasklog = ['tId'=>$tId,'tDId'=>$id,'type'=>'complete','empNo'=>$userInfo['EMP_NO']];
             $result = Model('TaskLog')->save($tasklog);
-            return $this->success('完成成功!');
+            return $this->success('任务完成!');
         }else{
-            return $this->error('完成失败');
+            return $this->error('任务未完成');
         }
     }
 
-    //获取日志
+    /*
+     * 获取日志
+     */
     public function getLogs($tId,$mouth)
     {
-        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$mouth])->value('id');
+        $year = date('Y',time());
+        $tDate =  $year . $mouth;
+        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate])->value('id');
         $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
         if($result){
             foreach($result as $k=>$v){
@@ -374,7 +385,9 @@ class Task extends Common
         }
 
     }
-    
+    /**
+   * 任务分类的启用禁用
+   */
     public function oprationSta($typeId,$status)
     {
         if($status == '0'){
