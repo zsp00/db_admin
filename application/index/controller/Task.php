@@ -124,35 +124,8 @@ class Task extends Common
             default:
                 $this->error('任务状态异常');
         }
-
-        // 获取用户权限
-
+        // 获取用户的身份
         $userInfo = getUserInfo();
-        $Identity = new Identity();
-        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
-
-        switch ($taskDataInfo['status']) {
-            // 如果部门领导未提交
-            case '1':
-                break;
-            // 部门领导已经提交办公室未确认
-            case '2':
-                // 如果是部门领导
-                if (in_array('1',$identitys)) {
-                    $this->error('部门领导已经提交此任务，您无权修改');
-                } else if(in_array('2',$identitys)){
-                    break;
-                } else {
-                    $this->error('部门领导已经提交此任务，您无权修改');
-                }
-                break;
-            // 办公室已经确认
-            case '3':
-                $this->error('办公室已经确认，禁止修改');
-                break;
-            default:
-                $this->error('该月任务状态异常');
-        }
         // 更新内容
         $update = [
             'completeSituation' =>  $completeSituation,
@@ -163,7 +136,6 @@ class Task extends Common
         if ($updateStatus === false) {
             $this->error($TaskDataModel->getError());
         }
-
         if($updateStatus === 0){
             $this->error('您没做任何修改！');
         }
@@ -187,13 +159,15 @@ class Task extends Common
      */
     public function submits($id, $currentLevel, $nextLevel)
     {
-        //获取用户的权限
+        dump($id);
+        die;
+        //获取用户的信息
         $userInfo = getUserInfo();
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
             $this->error('该条记录未找到');
-        
+
         // 下一步不能大于总步数
         $level = model('Task')->where('id', $taskDataInfo['tId'])->value('level');
         if ($nextLevel < $level)
