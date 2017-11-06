@@ -82,6 +82,9 @@ class Task extends Common
         if($result){
             $OrgDept = new OrgDept();
             $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
+            $result['timeLimit'] = substr_replace($result['timeLimit'], '年', 4, 0) . '月';
+            $result['releaseTime'] = date('Y', $result['releaseTime']);
+            $result['steps'] = model('Process')->where('id', $result['pId'])->value('level');
             $identitys = Model('ProcessData')->getStepIds($result['pId']);
             $result['identitys'] = $identitys['0'];
             $this->success($result);
@@ -146,8 +149,15 @@ class Task extends Common
             $this->error('添加日志失败!');
         }
     }
-    //提交
-    public function submits($id)
+    
+    /**
+     * 用户提交任务
+     * @param  int $id           任务每月详情Id，task_data表中的Id
+     * @param  int $currentLevel 当前流程进行到哪一步
+     * @param  int $nextLevel    当前流程的下一步
+     * @return array               提交结果
+     */
+    public function submits($id, $currentLevel, $nextLevel)
     {
         dump($id);
         die;
@@ -155,70 +165,101 @@ class Task extends Common
         $userInfo = getUserInfo();
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
-        if(!$taskDataInfo){
+        if(!$taskDataInfo)
             $this->error('该条记录未找到');
-        }
-        switch ($taskDataInfo['status']) {
-            case '1':
-                break;
-            case '0':
-                $this->error('该流程已被关闭！');
-                break;
-            default:
-                $this->error('该月任务状态异常');
-        }
-        // 修改当前流程等级
-        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => '2']);
-        if ($updateStatus === false) {
+
+        // 下一步不能大于总步数
+        $level = model('Task')->where('id', $taskDataInfo['tId'])->value('level');
+        if ($nextLevel < $level)
+            $update = ['currentLevel' => $currentLevel + 1, 'nextLevel' => $nextLevel + 1];
+        else
+            $update = ['currentLevel' => $currentLevel + 1];
+
+        $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        if ($updateStatus === false)
             $this->error($TaskDataModel->getError());
-        }else{
+        else
+        {
             $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'submit','empNo'=>$userInfo['EMP_NO']];
             $result = Model('TaskLog')->save($tasklog);
             $this->success('提交成功!');
         }
     }
-    //确认
-    public function confirm($id)
+
+    /**
+     * 撤回任务
+     * @param  int $id           任务每月详情Id，task_data表中的Id
+     * @param  int $currentLevel 当前流程进行到哪一步
+     * @param  int $nextLevel    当前流程的下一步
+     * @return array               撤回结果
+     */
+    public function withdraw($id, $currentLevel, $nextLevel)
     {
         //获取用户的权限
         $userInfo = getUserInfo();
-        $Identity = new Identity();
-        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
-        if(!$taskDataInfo){
+        if(!$taskDataInfo)
             $this->error('该条记录未找到');
-        }
-        switch ($taskDataInfo['status']) {
-            // 如果部门领导未提交
-            case '1':
-                break;
-            // 部门领导已经提交办公室未确认
-            case '2':
-                // 如果是部门领导
-                if (in_array('1',$identitys)) {
-                    $this->error('部门领导已经提交此任务，您无权修改');
-                } else if(in_array('2',$identitys)){
-                    break;
-                } else {
-                    $this->error('部门领导已经提交此任务，您无权修改');
-                }
-                break;
-            // 办公室已经确认
-            case '3':
-                $this->error('办公室已经确认，禁止修改');
-                break;
-            default:
-                $this->error('该月任务状态异常');
-        }
-        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => '3']);
-        if ($updateStatus === false) {
+
+
+        $level = model('Task')->where('id', $taskDataInfo['tId'])->value('level');
+        if ($currentLevel >= $level)
+            $update = ['currentLevel' => $currentLevel - 1];
+        else
+            $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
+        
+        $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        if ($updateStatus === false)
             $this->error($TaskDataModel->getError());
-        }else{
-            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'confirm','empNo'=>$userInfo['EMP_NO']];
-            $result = Model('TaskLog')->save($tasklog);
-            $this->success('确认成功!');
-        }
+        else
+            $this->success('撤回成功!');
+    }
+
+    /**
+     * 驳回任务请求
+     * @param  int $id           任务每月详情Id，task_data表中的Id
+     * @param  int $currentLevel 当前流程进行到哪一步
+     * @param  int $nextLevel    当前流程的下一步
+     * @return array               驳回结果
+     */
+    public function reject($id, $currentLevel, $nextLevel)
+    {
+        //获取用户的权限
+        $userInfo = getUserInfo();
+        $TaskDataModel = new TaskData();
+        $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
+        if(!$taskDataInfo)
+            $this->error('该条记录未找到');
+        
+        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1]);
+        if ($updateStatus === false)
+            $this->error($TaskDataModel->getError());
+        else
+            $this->success('驳回成功!');
+    }
+
+    /**
+     * 领导最终确认任务
+     * @param  int $id           任务每月详情Id，task_data表中的Id
+     * @param  ing $currentLevel 当前流程进行到哪一步
+     * @return array               确认结果
+     */
+    public function confirm($id, $currentLevel)
+    {
+        //获取用户的权限
+        $userInfo = getUserInfo();
+        $TaskDataModel = new TaskData();
+        $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
+        if(!$taskDataInfo)
+            $this->error('该条记录未找到');
+        
+        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => 0]);
+
+        if ($updateStatus === false)
+            $this->error($TaskDataModel->getError());
+        else
+            $this->success('确认任务成功!');
     }
 
     //完成
