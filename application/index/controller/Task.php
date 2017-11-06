@@ -10,8 +10,6 @@ use app\common\model\TaskLog;
 
 class Task extends Common
 {
-    protected $_participateLevel = null;
-
     public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '')
     {
         $userInfo = getUserInfo();
@@ -82,11 +80,9 @@ class Task extends Common
         if($result){
             $OrgDept = new OrgDept();
             $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
-            $result['timeLimit'] = substr_replace($result['timeLimit'], '年', 4, 0) . '月';
+            $result['timeLimit'] = substr_replace($result['timeLimit'], '年', 4, 0);
             $result['releaseTime'] = date('Y', $result['releaseTime']);
             $result['steps'] = model('Process')->where('id', $result['pId'])->value('level');
-            $identitys = Model('ProcessData')->getStepIds($result['pId']);
-            $result['identitys'] = $identitys['0'];
             $this->success($result);
         }else{
             $this->error('未找到');
