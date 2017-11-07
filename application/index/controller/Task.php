@@ -82,7 +82,7 @@ class Task extends Common
             $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
             $result['timeLimit'] = substr_replace($result['timeLimit'], '年', 4, 0);
             $result['releaseTime'] = date('Y', $result['releaseTime']);
-            $result['steps'] = model('Process')->where('id', $result['pId'])->value('level');
+            $result['steps'] = Model('Process')->where('id', $result['pId'])->value('level');
             $this->success($result);
         }else{
             $this->error('未找到');
@@ -161,19 +161,27 @@ class Task extends Common
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
             $this->error('该条记录未找到');
-
-        // 下一步不能大于总步数
+        // 获取流程总的等级
         $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
-        if ($nextLevel < $level)
-            $update = ['currentLevel' => $currentLevel + 1, 'nextLevel' => $nextLevel + 1];
-        else
-            $update = ['currentLevel' => $currentLevel + 1];
+
+        //如果部门办事员和主任都在流程1  2 级那么跳过2级到3级
+        $identitys = Model('ProcessData')->getStepIds($taskDataInfo['pId']);
+        if($identitys['0'] == 1 && $identitys['1'] == 2){
+            $update = ['currentLevel' => $currentLevel + 2, 'nextLevel' => $nextLevel + 2];
+        }else{
+            // 下一步不能大于总步数
+            if ($nextLevel < $level){
+                $update = ['currentLevel' => $currentLevel + 1, 'nextLevel' => $nextLevel + 1];
+            }else{
+                $update = ['currentLevel' => $currentLevel + 1];
+            }
+        }
 
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
-        if ($updateStatus === false)
+        if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
-        else
-        {
+        }else{
+            //添加提交日志
             $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'submit','empNo'=>$userInfo['EMP_NO']];
             $result = Model('TaskLog')->save($tasklog);
             $this->success('提交成功!');
