@@ -167,7 +167,12 @@ class Task extends Common
         //如果部门办事员和主任都在流程1  2 级那么跳过2级到3级
         $identitys = Model('ProcessData')->getStepIds($taskDataInfo['pId']);
         if($identitys['0'] == 1 && $identitys['1'] == 2){
-            $update = ['currentLevel' => $currentLevel + 2, 'nextLevel' => $nextLevel + 2];
+            //如果当前的等级为1 则+2跳到3级 如果当前等级为2 则+1跳到3级
+            if($currentLevel == 1){
+                $update = ['currentLevel' => $currentLevel + 2, 'nextLevel' => $nextLevel + 2];
+            }else{
+                $update = ['currentLevel' => $currentLevel + 1, 'nextLevel' => $nextLevel + 1];
+            }
         }else{
             // 下一步不能大于总步数
             if ($nextLevel < $level){
@@ -203,14 +208,12 @@ class Task extends Common
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
             $this->error('该条记录未找到');
-
-
         $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
-        if ($currentLevel >= $level)
+        if ($currentLevel >= $level){
             $update = ['currentLevel' => $currentLevel - 1];
-        else
+        }else{
             $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
-        
+        }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
         if ($updateStatus === false)
             $this->error($TaskDataModel->getError());
@@ -234,15 +237,16 @@ class Task extends Common
         if(!$taskDataInfo)
             $this->error('该条记录未找到');
         $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
-        if ($currentLevel >= $level)
+        if ($currentLevel >= $level){
             $update = ['currentLevel' => $currentLevel - 1];
-        else
+        }else{
             $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
-
+        }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
         if ($updateStatus === false)
             $this->error($TaskDataModel->getError());
         else
+            //添加驳回日志
             $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'reject','empNo'=>$userInfo['EMP_NO']];
             $result = Model('TaskLog')->save($tasklog);
             $this->success('驳回成功!');
@@ -260,11 +264,13 @@ class Task extends Common
         if(!$taskDataInfo){
             $this->error('该条记录未找到');
         }
+        //本月的任务确认task_data表
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => 0]);
 
         if ($updateStatus === false) {
             $this->error($TaskDataModel->getError());
         }else{
+            //添加确认日志
             $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$id,'type'=>'confirm','empNo'=>$userInfo['EMP_NO']];
             $result = Model('TaskLog')->save($tasklog);
             $this->success('确认成功!');
@@ -279,8 +285,10 @@ class Task extends Common
         $userInfo = getUserInfo();
         $tId = Model('TaskData')->where(['id' => $id])->value('tId');
         $TaskModel = new \app\common\model\Task();
+        //任务总的完成task表
         $result = $TaskModel->where(['id' => $tId])->update(['status' => '2']);
         if($result){
+            //添加完成日志
             $tasklog = ['tId'=>$tId,'tDId'=>$id,'type'=>'complete','empNo'=>$userInfo['EMP_NO']];
             $result = Model('TaskLog')->save($tasklog);
             return $this->success('任务完成!');
