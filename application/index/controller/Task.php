@@ -215,10 +215,15 @@ class Task extends Common
             $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
         }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
-        if ($updateStatus === false)
+        if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
-        else
+        }else{
+            //添加撤回日志
+            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'withdraw','empNo'=>$userInfo['EMP_NO']];
+            $result = Model('TaskLog')->save($tasklog);
             $this->success('撤回成功!');
+        }
+
     }
 
     /**
@@ -302,10 +307,23 @@ class Task extends Common
      */
     public function getLogs($tId,$mouth)
     {
+        //根据登录的用户查询它的三级组织id
+        $userInfo = getUserInfo();
+        $deptNo = Model('UserEmp')->where(['EMP_NO'=>$userInfo['EMP_NO']])->value('DEPTNO');
+        $deptNo = Model('OrgDept')->getDeptNo($deptNo);
+//        //查询三级组织下的所有组织id
+//        $dept = Model('OrgDept')->getDeptChild($deptNo);
+//        $deptArr = [];
+//        foreach($dept as $k=>$v){
+//            $deptArr[] = $v['DEPT_NO'];
+//        }
+
         $year = date('Y',time());
         $tDate =  $year . $mouth;
         $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate])->value('id');
         $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
+        dump($result);
+        die;
         if($result){
             foreach($result as $k=>$v){
                 $result[$k]['empNo'] = Model('UserEmp')->getUserRealName($v['empNo']);
@@ -313,6 +331,7 @@ class Task extends Common
             }
         }
         $this->success($result);
+
     }
 
     /*
