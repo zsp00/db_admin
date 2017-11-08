@@ -24,7 +24,7 @@ class Task extends Model
             $where['task.'.$k] = $v;
         }
         $model = $this->alias('task')
-            ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"', 'left')
+            ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"')
             ->where($where)
             ->field([
                 'task.*',
@@ -49,14 +49,6 @@ class Task extends Model
                 $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = model('TaskType')->where('id', $v['typeId'])->value('typeName');
-
-                $currStep = $v['taskDataStatus'];
-                // 获取任务显示的当前状态
-                if(isset($currStep) && $currStep != null){
-                    $list[$k]['taskDataStatusMsg'] = $this->getStatusMsg($v['pId'], $currStep, $v['currMonthStatus']);
-                }else{
-                    $list[$k]['taskDataStatusMsg'] = '';
-                }
             }
         }
         $result['data'] = $list;
@@ -71,13 +63,12 @@ class Task extends Model
             $taskDataList = $TaskData->where(['tId'=>$id])->order(['tDate desc'])->select();
             foreach($taskDataList as $k=>$v){
                 $taskDataList[$k]['tDate'] = substr($v['tDate'],4);
-                $taskDataList[$k]['taskDataStatusMsg'] = $this->getStatusMsg($info['pId'], $v['currentLevel'], $v['status']);
             }
             $info['identitys'] = $this->_participateLevel == null ? Model('ProcessData')->getStepIds($info['pId']) : $this->_participateLevel;
 
             $taskDataStatusMsg = new TaskData();
             $info['taskDataList'] = $taskDataList;
-            $info['statusMsg'] = $this->statusMsg[$info['status']];
+            $steps = model('ProcessData')->where('pId', $info['pId'])->order('levelNo')->select();
             
             return $info;
         }else{
