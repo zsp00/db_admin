@@ -166,7 +166,7 @@ class Task extends Common
 
         //如果部门办事员和主任都在流程1  2 级那么跳过2级到3级
         $identitys = Model('ProcessData')->getStepIds($taskDataInfo['pId']);
-        if($identitys['0'] == 1 && $identitys['1'] == 2){
+        if(count($identitys) > 1 && ($identitys['0'] == 1 && $identitys['1'] == 2)){
             //如果当前的等级为1 则+2跳到3级 如果当前等级为2 则+1跳到3级
             if($currentLevel == 1){
                 $update = ['currentLevel' => $currentLevel + 2, 'nextLevel' => $nextLevel + 2];
