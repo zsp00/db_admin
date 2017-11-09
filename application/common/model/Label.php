@@ -33,4 +33,8 @@ class Label extends Model
         }
     }
 
+    public function getLabelRealName($id)
+    {
+        return $this->where('id',$id)->value('name');
+    }
 }

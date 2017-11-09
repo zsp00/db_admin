@@ -56,24 +56,85 @@ class Task extends Model
         return $result;
     }
 
-    public function getInfo($id) {
+    public function getInfo($id)
+    {
         $info = $this->where(['id'=>$id])->find();
         if($info) {
             $TaskData = new TaskData();
             $taskDataList = $TaskData->where(['tId'=>$id])->order(['tDate desc'])->select();
-            foreach($taskDataList as $k=>$v){
+            foreach($taskDataList as $k=>$v)
+            {
+                $steps = array();
+                // 获取流程步骤，拼凑页面步骤条数据
+                $processData = model('ProcessData')->where('pId', $info['pId'])->order('levelNo')->select();
+                foreach ($processData as $kk => $vv)
+                {
+                    // 如果没有描述字段则显示步骤编号
+                    if ($vv['pDescribe'] != '')
+                        $label = $vv['pDescribe'];
+                    else
+                        $label = '步骤' . $kk;
+
+                    if ($vv['levelNo'] < $v['currentLevel'])
+                        $label .= '：已完成';
+                    elseif ($vv['levelNo'] == $v['currentLevel'])
+                        $label .= '：进行中';
+                    else
+                        $label .= '：待办';
+
+                    $steps[$kk]['label'] = $label;
+                    $steps[$kk]['participate'] = $this->getParticipateName($vv['audit_user']);
+                }
+                $taskDataList[$k]['steps'] = $steps;
+                // 步骤条第一步，显示发起督办任务信息
+                $superviseRecord = model('SuperviseRecord')->where(['tId'=>$id, 'srDate'=>$v['tDate']])->find();
+                $stepFirst['fullName'] = getAllName('person', $superviseRecord['srUser'], true);  // 名字到公司的组织结构
+                $stepFirst['name'] = substr($stepFirst['fullName'], strrpos($stepFirst['fullName'], '/') + 1);   // 名字
+                $stepFirst['text'] = '于 ' . $superviseRecord['srTime'] . ' 对该任务发起了督办';
+                $taskDataList[$k]['stepFirst'] = $stepFirst;
+
+                // 页面显示月份用
                 $taskDataList[$k]['tDate'] = substr($v['tDate'],4);
             }
+            // dump($taskDataList);exit;
             $info['identitys'] = $this->_participateLevel == null ? Model('ProcessData')->getStepIds($info['pId']) : $this->_participateLevel;
 
             $taskDataStatusMsg = new TaskData();
             $info['taskDataList'] = $taskDataList;
-            $steps = model('ProcessData')->where('pId', $info['pId'])->order('levelNo')->select();
             
             return $info;
         }else{
             return false;
         }
+    }
+
+    private function getParticipateName($str)
+    {
+        $arr = json_decode($str, true);
+        $participate = array();
+        $notIn = array();
+        foreach ($arr as $k => $v)
+        {
+            if ($v == '')
+                continue;
+            $ids = explode(',', $v);
+            foreach ($ids as $kk => $vv)
+            {
+                if ($k == 'notIn')
+                {
+                    $fullName = getAllName('person', $vv, true);
+                    $notIn[$kk]['name'] = substr($fullName, strrpos($fullName, '/') + 1);
+                    $notIn[$kk]['fullName'] = $fullName;
+                }
+                else
+                {
+                    $fullName = getAllName($k, $vv, true);
+                    $participate[$kk]['name'] = substr($fullName, strrpos($fullName, '/') + 1);
+                    $participate[$kk]['fullName'] = $fullName;
+                }
+            }
+        }
+        return [$participate, $notIn];
     }
 
     /**

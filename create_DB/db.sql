@@ -91,3 +91,13 @@ create table d_task_data
   status               boolean                   default 1           comment '所属月份该流程是否关闭，0关闭，1进行中'
 );
 
+
+-- 督办记录表
+create table d_supervise_record
+(
+  id                   int                       auto_increment primary key,
+  srUser               varchar(10)               not null            comment '督办人Id',
+  tId                  int                       not null            comment '任务Id',
+  srDate               mediumint                 not null            comment '督办任务的月份',
+  srTime               int                       not null            comment '发起督办时间'
+);
