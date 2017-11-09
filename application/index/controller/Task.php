@@ -92,12 +92,13 @@ class Task extends Common
     /*
      * 更新
      */
-    public function edit($id, $completeSituation, $problemSuggestions, $analysis, $status){
+    public function edit($id, $completeSituation, $problemSuggestions, $analysis, $taskSelect=false){
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo){
             $this->error('该条记录未找到');
         }
+        unset($taskDataInfo['status']);
         $TaskModel = new \app\common\model\Task();
         $taskInfo = $TaskModel->where(['id'=>$taskDataInfo['tId']])->find();
         if(!$taskInfo){
@@ -115,6 +116,8 @@ class Task extends Common
             case '1':
                 break;
             case '2':
+                break;
+            case '3':
                 $this->error('任务已经完成。');
                 break;
             default:
@@ -123,23 +126,31 @@ class Task extends Common
         // 获取用户的身份
         $userInfo = getUserInfo();
         $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-        // 更新内容
+        // 更新内容   先更新任务详情
         $update = [
             'completeSituation' =>  $completeSituation,
             'problemSuggestions'    =>  $problemSuggestions,
             'analysis'  =>  $analysis
         ];
-        $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
-        if ($updateStatus === false) {
-            $this->error($TaskDataModel->getError());
-        }
-        if($updateStatus === 0){
-            $this->error('您没做任何修改！');
+        $updateDataStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        // 第二步更新任务完成状态
+        $taskSelect == false ? $taskSelect='1' : $taskSelect='2';
+        $taskUpdate = Model('Task')->where(['id'=>$taskInfo['id']])->update(['status'=>$taskSelect]);
+        $TaskLogModel = new TaskLog();
+        if($taskUpdate){
+            $update['status'] = $taskSelect;
+            $taskDataInfo['status'] = $taskInfo['status'];
         }
 
-        // 添加修改日志
+        if ($updateDataStatus === false) {
+            $this->error($TaskDataModel->getError());
+        }
+        if($updateDataStatus === 0 && $taskUpdate === 0){
+            $this->error('您没做任何修改！');
+        }
         $TaskLogModel = new TaskLog();
         $result = $TaskLogModel->addLog($taskInfo['id'],$taskDataInfo['id'],'edit',$userInfo['EMP_NO'],$deptNo,$update,$taskDataInfo->toArray());
+
         if($result){
             $this->success('修改成功');
         }else{
@@ -261,7 +272,7 @@ class Task extends Common
     /**
      * 确认任务
      */
-    public function confirm($id)
+    public function confirm($id,$taskSelect=false)
     {
         //获取用户的权限
         $userInfo = getUserInfo();
@@ -270,6 +281,9 @@ class Task extends Common
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo){
             $this->error('该条记录未找到');
+        }
+        if($taskSelect){
+            Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3']);
         }
         //本月的任务确认task_data表
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => 0]);
@@ -286,22 +300,22 @@ class Task extends Common
     /**
      * 完成任务
      */
-    public function complete($id)
-    {
-        $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-        $tId = Model('TaskData')->where(['id' => $id])->value('tId');
-        $TaskModel = new \app\common\model\Task();
-        //任务总的完成task表
-        $result = $TaskModel->where(['id' => $tId])->update(['status' => '2']);
-        if($result){
-            //添加完成日志
-            $result = Model('TaskLog')->addLog($tId,$id,'complete',$userInfo['EMP_NO'],$deptNo);
-            return $this->success('任务完成!');
-        }else{
-            return $this->error('任务未完成');
-        }
-    }
+//    public function complete($id)
+//    {
+//        $userInfo = getUserInfo();
+//        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+//        $tId = Model('TaskData')->where(['id' => $id])->value('tId');
+//        $TaskModel = new \app\common\model\Task();
+//        //任务总的完成task表
+//        $result = $TaskModel->where(['id' => $tId])->update(['status' => '2']);
+//        if($result){
+//            //添加完成日志
+//            $result = Model('TaskLog')->addLog($tId,$id,'complete',$userInfo['EMP_NO'],$deptNo);
+//            return $this->success('任务完成!');
+//        }else{
+//            return $this->error('任务未完成');
+//        }
+//    }
 
     /*
      * 获取日志

@@ -60,10 +60,12 @@ class Task extends Model
     {
         $info = $this->where(['id'=>$id])->find();
         if($info) {
+            $task = Model('Task')->where(['id'=>$id])->find();
             $TaskData = new TaskData();
             $taskDataList = $TaskData->where(['tId'=>$id])->order(['tDate desc'])->select();
             foreach($taskDataList as $k=>$v)
             {
+                $taskDataList[$k]['taskSelect'] = $task['status'] == '1' ? false : true;
                 $steps = array();
                 // 获取流程步骤，拼凑页面步骤条数据
                 $processData = model('ProcessData')->where('pId', $info['pId'])->order('levelNo')->select();
