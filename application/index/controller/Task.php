@@ -92,7 +92,7 @@ class Task extends Common
     /*
      * 更新
      */
-    public function edit($id, $completeSituation, $problemSuggestions, $analysis){
+    public function edit($id, $completeSituation, $problemSuggestions, $analysis, $status){
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo){
@@ -122,6 +122,7 @@ class Task extends Common
         }
         // 获取用户的身份
         $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
         // 更新内容
         $update = [
             'completeSituation' =>  $completeSituation,
@@ -138,7 +139,7 @@ class Task extends Common
 
         // 添加修改日志
         $TaskLogModel = new TaskLog();
-        $result = $TaskLogModel->addLog($taskInfo['id'],$taskDataInfo['id'],'edit',$userInfo['EMP_NO'],$update,$taskDataInfo->toArray());
+        $result = $TaskLogModel->addLog($taskInfo['id'],$taskDataInfo['id'],'edit',$userInfo['EMP_NO'],$deptNo,$update,$taskDataInfo->toArray());
         if($result){
             $this->success('修改成功');
         }else{
@@ -157,6 +158,7 @@ class Task extends Common
     {
         //获取用户的信息
         $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
@@ -187,8 +189,7 @@ class Task extends Common
             $this->error($TaskDataModel->getError());
         }else{
             //添加提交日志
-            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'submit','empNo'=>$userInfo['EMP_NO']];
-            $result = Model('TaskLog')->save($tasklog);
+            $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'submit',$userInfo['EMP_NO'],$deptNo);
             $this->success('提交成功!');
         }
     }
@@ -204,6 +205,7 @@ class Task extends Common
     {
         //获取用户的权限
         $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
@@ -219,8 +221,7 @@ class Task extends Common
             $this->error($TaskDataModel->getError());
         }else{
             //添加撤回日志
-            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'withdraw','empNo'=>$userInfo['EMP_NO']];
-            $result = Model('TaskLog')->save($tasklog);
+            $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'withdraw',$userInfo['EMP_NO'],$deptNo);
             $this->success('撤回成功!');
         }
 
@@ -237,6 +238,7 @@ class Task extends Common
     {
         //获取用户的权限
         $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
@@ -252,8 +254,7 @@ class Task extends Common
             $this->error($TaskDataModel->getError());
         else
             //添加驳回日志
-            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$taskDataInfo['id'],'type'=>'reject','empNo'=>$userInfo['EMP_NO']];
-            $result = Model('TaskLog')->save($tasklog);
+            $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'reject',$userInfo['EMP_NO'],$deptNo);
             $this->success('驳回成功!');
     }
 
@@ -264,6 +265,7 @@ class Task extends Common
     {
         //获取用户的权限
         $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo){
@@ -276,8 +278,7 @@ class Task extends Common
             $this->error($TaskDataModel->getError());
         }else{
             //添加确认日志
-            $tasklog = ['tId'=>$taskDataInfo['tId'],'tDId'=>$id,'type'=>'confirm','empNo'=>$userInfo['EMP_NO']];
-            $result = Model('TaskLog')->save($tasklog);
+            $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'confirm',$userInfo['EMP_NO'],$deptNo);
             $this->success('确认成功!');
         }
     }
@@ -288,14 +289,14 @@ class Task extends Common
     public function complete($id)
     {
         $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
         $tId = Model('TaskData')->where(['id' => $id])->value('tId');
         $TaskModel = new \app\common\model\Task();
         //任务总的完成task表
         $result = $TaskModel->where(['id' => $tId])->update(['status' => '2']);
         if($result){
             //添加完成日志
-            $tasklog = ['tId'=>$tId,'tDId'=>$id,'type'=>'complete','empNo'=>$userInfo['EMP_NO']];
-            $result = Model('TaskLog')->save($tasklog);
+            $result = Model('TaskLog')->addLog($tId,$id,'complete',$userInfo['EMP_NO'],$deptNo);
             return $this->success('任务完成!');
         }else{
             return $this->error('任务未完成');
@@ -309,25 +310,16 @@ class Task extends Common
     {
         //根据登录的用户查询它的三级组织id
         $userInfo = getUserInfo();
-        $deptNo = Model('UserEmp')->where(['EMP_NO'=>$userInfo['EMP_NO']])->value('DEPTNO');
-        $deptNo = Model('OrgDept')->getDeptNo($deptNo);
-//        //查询三级组织下的所有组织id
-//        $dept = Model('OrgDept')->getDeptChild($deptNo);
-//        $deptArr = [];
-//        foreach($dept as $k=>$v){
-//            $deptArr[] = $v['DEPT_NO'];
-//        }
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
 
         $year = date('Y',time());
         $tDate =  $year . $mouth;
         $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate])->value('id');
         $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
-        dump($result);
-        die;
         if($result){
             foreach($result as $k=>$v){
                 $result[$k]['empNo'] = Model('UserEmp')->getUserRealName($v['empNo']);
-                $result[$k]['logData'] = Model('TaskLogData')->getLogData($v['id']);
+                $result[$k]['logData'] = Model('TaskLogData')->getLogData($v['id'],$deptNo);
             }
         }
         $this->success($result);

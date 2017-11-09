@@ -16,7 +16,7 @@ class TaskLog extends Model
     /*
      * 添加一条日志
      */
-    public function addLog($tId,$tDId,$type,$empNo,$newData = [], $oldData = []){
+    public function addLog($tId,$tDId,$type,$empNo,$deptNo,$newData = [], $oldData = []){
         $data = [
             'tId'   =>  $tId,
             'tDId'  =>  $tDId,
@@ -33,7 +33,8 @@ class TaskLog extends Model
                 $taskLogData[$k] = [
                     'tLId'  =>  $tLId,
                     'field' =>  $k,
-                    'new'   =>  $v
+                    'new'   =>  $v,
+                    'deptNo' => $deptNo
                 ];
             }
             foreach($oldData as $k=>$v){

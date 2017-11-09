@@ -21,6 +21,27 @@ class TaskManage extends Common
         }
     }
 
+    // 获取任务的分类
+    public function getType()
+    {
+        $result = Model('TaskType')->select();
+        if($result){
+            $this->success($result);
+        }else{
+            $this->error('分类错误！');
+        }
+    }
+
+    // 获取所有的流程
+    public function getProcess()
+    {
+        $result = Model('Process')->select();
+        if($result){
+            $this->success($result);
+        }else{
+            $this->error('流程错误！');
+        }
+    }
     //删除任务
     public function delTask($id)
     {
@@ -41,6 +62,8 @@ class TaskManage extends Common
             $this->success('删除成功!');
         }
     }
+
+
 }
 
 
