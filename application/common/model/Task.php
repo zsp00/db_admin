@@ -53,15 +53,14 @@ class Task extends Model
             $taskDataStatusMsg = new TaskData();
             foreach($list as $k=>$v)
             {
-                $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['currMonthStatus']])->value('pDescribe');
-                $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['currMonthStatus']) : $describe) . ($v['currMonthStatus'] == 1 ? '填报中' : '审批中');
+                $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
+                $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : '审批中');
                 $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = model('TaskType')->where('id', $v['typeId'])->value('typeName');
             }
         }
         $result['data'] = $list;
-// dump($list);exit;
         return $result;
     }
 
