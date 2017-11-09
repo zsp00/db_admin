@@ -72,7 +72,7 @@ CREATE TABLE d_task
   timeLimit            mediumint                 NOT NULL            COMMENT '时限',
   level                enum('D','C','B','A')     NOT NULL            COMMENT '等级配分',
   completeTime         int                       DEFAULT 0           COMMENT '完成时间',
-  status               enum('2','-1','0','1')    DEFAULT '1'         COMMENT '-1 删除 0 禁用 1 未完成 2 完成'
+  status               enum('2','-1','0','1','3')DEFAULT '1'         COMMENT '-1 删除 0 禁用 1 未完成 2 进行中标记完成 3 最终完成'
 );
 
 
