@@ -19,21 +19,18 @@ class Task extends Common
         }else{
             $this->error('您所在的分公司不参与');
         }
+        $OrgDept = new OrgDept();
+        $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
         $map = [
+            'deptNo'    =>  $deptNo,
             'content'   =>  ['like','%'.$keyword.'%'],
-            'status'    =>  '1'
+            'status'    =>  ['in', '1,2']
         ];
         //获取权限
         $Identity = new Identity();
         $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
 
         $Task = new \app\common\model\Task();
-        // if(!in_array('2',$identitys)){            // 身份功能暂时取消使用
-        //     $OrgDept = new OrgDept();
-        //     $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
-        //     $map['deptNo'] = $deptNo;
-        // }
-
 
         if($level !== ''){
             $map['level'] = $level;

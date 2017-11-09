@@ -36,23 +36,32 @@ class Task extends Model
             ]);
         $list = $model->page($page,$listRow)
             ->select();
-        $result['total'] = $model->count();
+        $result['total'] = $this->alias('task')
+            ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"')
+            ->where($where)
+            ->field([
+                'task.*',
+                'task_data.completeSituation',
+                'task_data.problemSuggestions',
+                'task_data.analysis',
+                'task_data.currentLevel'    =>  'taskDataStatus',
+                'task_data.status'          =>  'currMonthStatus'
+            ])->count();
+
         if($list){
             $OrgDept = new OrgDept();
             $taskDataStatusMsg = new TaskData();
             foreach($list as $k=>$v)
             {
-                // 获取当前用户能参与到流程的那些步骤
-                $stepIds = model('ProcessData')->getStepIds($v['pId']);
-
-                $list[$k]['statusMsg'] = $this->statusMsg[$v['status']];
+                $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['currMonthStatus']])->value('pDescribe');
+                $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['currMonthStatus']) : $describe) . ($v['currMonthStatus'] == 1 ? '填报中' : '审批中');
                 $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = model('TaskType')->where('id', $v['typeId'])->value('typeName');
             }
         }
         $result['data'] = $list;
-
+// dump($list);exit;
         return $result;
     }
 
@@ -78,7 +87,12 @@ class Task extends Model
                     if ($vv['levelNo'] < $v['currentLevel'])
                         $label .= '：已完成';
                     elseif ($vv['levelNo'] == $v['currentLevel'])
-                        $label .= '：进行中';
+                    {
+                        if ($v['status'] == 0)
+                            $label .= '：已完成';
+                        else
+                            $label .= '：进行中';
+                    }
                     else
                         $label .= '：待办';
 
@@ -96,7 +110,6 @@ class Task extends Model
                 // 页面显示月份用
                 $taskDataList[$k]['tDate'] = substr($v['tDate'],4);
             }
-            // dump($taskDataList);exit;
             $info['identitys'] = $this->_participateLevel == null ? Model('ProcessData')->getStepIds($info['pId']) : $this->_participateLevel;
 
             $taskDataStatusMsg = new TaskData();
