@@ -82,7 +82,7 @@ class Task extends Common
             $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
             $result['timeLimit'] = substr_replace($result['timeLimit'], '年', 4, 0);
             $result['releaseTime'] = date('Y', $result['releaseTime']);
-            $result['steps'] = Model('Process')->where('id', $result['pId'])->value('level');
+            $result['stepsNum'] = Model('Process')->where('id', $result['pId'])->value('level');
             $this->success($result);
         }else{
             $this->error('未找到');

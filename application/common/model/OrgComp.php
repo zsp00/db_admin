@@ -21,7 +21,7 @@ class OrgComp extends Model
 	 */
 	public function getCompName($compNo)
 	{
-		return $this->where(['COMP_NO'=>$COMP_NO])->value('COMP_NAME');
+		return $this->where(['COMP_NO'=>$compNo])->value('COMP_NAME');
 	}
 
 	public function getList(){
