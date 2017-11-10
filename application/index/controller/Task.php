@@ -22,10 +22,10 @@ class Task extends Common
         $OrgDept = new OrgDept();
         $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
         $map = [
-            'deptNo'    =>  $deptNo,
             'content'   =>  ['like','%'.$keyword.'%'],
             'status'    =>  ['in', '1,2']
         ];
+
         //获取权限
         $Identity = new Identity();
         $identitys = $Identity->getIdentity($userInfo['EMP_NO']);

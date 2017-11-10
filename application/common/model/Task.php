@@ -20,11 +20,16 @@ class Task extends Model
             'currPage' => $page
         ];
         $where = [];
-        foreach($map as $k=>$v){
-            $where['task.'.$k] = $v;
+        foreach($map as $k=>$v)
+        {
+            if ($k == 'typeId')
+                $where['task_tasktype.'.$k] = $v;
+            else
+                $where['task.'.$k] = $v;
         }
         $model = $this->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"')
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
             ->where($where)
             ->field([
                 'task.*',
@@ -38,6 +43,7 @@ class Task extends Model
             ->select();
         $result['total'] = $this->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"')
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
             ->where($where)
             ->field([
                 'task.*',
@@ -57,7 +63,8 @@ class Task extends Model
                 $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : '审批中');
                 $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
-                $list[$k]['typeName'] = model('TaskType')->where('id', $v['typeId'])->value('typeName');
+                $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
+                $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
             }
         }
         $result['data'] = $list;

@@ -101,3 +101,12 @@ create table d_supervise_record
   srDate               mediumint                 not null            comment '督办任务的月份',
   srTime               int                       not null            comment '发起督办时间'
 );
+
+
+-- 任务列表查看权限表(能查看所有任务列表的人员记录)
+create table d_tasklist_authority
+(
+  id                   int                       auto_increment primary key,
+  type                 enum('dept','person','tag')       not null,
+  value                varchar(10)               not null
+);
