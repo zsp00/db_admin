@@ -280,7 +280,7 @@ class Task extends Common
             $this->error('该条记录未找到');
         }
         if($taskSelect){
-            Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3']);
+            Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3', 'completeTime'=>time()]);
         }
         //本月的任务确认task_data表
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => 0]);
