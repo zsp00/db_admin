@@ -42,6 +42,26 @@ class TaskManage extends Common
             $this->error('流程错误！');
         }
     }
+	// 添加任务
+	public function addTask($taskInfo)
+	{
+		$task = array();
+		$timeLimit = explode('-',$taskInfo['timeLimit']);
+		$task['timeLimit'] = $timeLimit['0'] . ($timeLimit['1'] + 1);
+		$task['deptNo'] = $taskInfo['deptValue'];
+		$task['typeId'] = $taskInfo['typeValue'];
+		$task['serialNumber'] = 0;
+		$task['content'] = $taskInfo['content'];
+		$task['releaseTime'] = time();
+		$task['level'] = $taskInfo['tasklevel'];
+		$task['pId'] = $taskInfo['processValue'];
+		$result = Model('Task')->insert($task);
+		if($result){
+			$this->success('添加任务成功');
+		}else{
+			$this->error('添加失败');
+		}
+	}
     //删除任务
     public function delTask($id)
     {
