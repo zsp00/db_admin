@@ -21,7 +21,7 @@ class TaskManage extends Common
         }
     }
 
-    // 获取任务的分类
+    // 获取任务列表的分类
     public function getType()
     {
         $result = Model('TaskType')->select();
@@ -88,30 +88,40 @@ class TaskManage extends Common
     {
         $result = Model('Task')->where('status', '<',3)->select();
         foreach($result as $k=>$v){
-            $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
-            $result[$k]['pId'] = Model('Process')->where(['id' => $v['pId']])->value('name');
-            $result[$k]['timeLimit'] = substr($v['timeLimit'],0,4).'年'.substr($v['timeLimit'],4,6).'月';
-            $result[$k]['taskDataValue'] = Model('TaskData')->getTaskDataValue($v['id']);
+//            $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
+//            $result[$k]['pId'] = Model('Process')->where(['id' => $v['pId']])->value('name');
+//            $result[$k]['timeLimit'] = substr($v['timeLimit'],0,4).'年'.substr($v['timeLimit'],4,6).'月';
+//            $result[$k]['taskDataValue'] = Model('TaskData')->getTaskDataValue($v['id']);
+            $typeNum = Model('TaskTasktype')->where(['tId'=> $v['id']])->select();
+            foreach($typeNum as $k2=>$v2){
+
+            }
         }
+        //dump($result);
+        die;
         if($result){
             $this->success($result);
         }
 
     }
 
-    // 获取task表里的部门
+    // 获取任务列表里面的部门（task表）
     public function getTaskDeptNo()
     {
         $taskInfo = Model('Task')->where('status','<',3)->group('deptNo')->column('deptNo');
         foreach($taskInfo  as $k=>$v){
             $deptInfo = Model('OrgDept')->where(['DEPT_NO'=>$v])->find();
-            $taskInfo[$k] = Model('OrgComp')->where(['COMP_NO'=>$deptInfo['COMP_NO']])->value('COMP_SHORT') . '/' .$deptInfo['DEPT_NAME'];
+            $deptName = Model('OrgComp')->where(['COMP_NO'=>$deptInfo['COMP_NO']])->value('COMP_SHORT') . '/' .$deptInfo['DEPT_NAME'];
+            $taskInfo[$k]= ['deptName' => $deptName, 'deptNo' => $v];
         }
-        dump($taskInfo);
+        $this->success($taskInfo);
     }
     //督办任务
     public function taskSupervice($id)
     {
+        if(empty($id)){
+            $this->error('请选择督办任务！');
+        }
         if(is_array($id)){
            foreach($id as $k=>$v){
                $pId = Model('Task')->where(['id'=>$v['id']])->value('pId');
