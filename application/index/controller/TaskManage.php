@@ -90,7 +90,7 @@ class TaskManage extends Common
     {
         $where = [
             'content'   =>  ['like','%'.$keyword.'%'],
-            'status'    =>  ['in', '1,2']
+            't.status'    =>  ['in', '1,2']
         ];
         if($level !== ''){
             $where['level'] = $level;
@@ -101,16 +101,23 @@ class TaskManage extends Common
         if($deptNo !== ''){
             $where['deptNo'] = $deptNo;
         }
-//        if($taskdataStatus!== ''){
-//            dump($taskdataStatus);
-//        }
+
+        if($taskdataStatus!== ''){
+            if ($taskdataStatus == 'true')
+                $where['td.status'] = 1;
+            else
+                $where['td.status'] = null;
+        }
+        $tDate = date('Ym', time());
         $result = Model('Task')
             ->alias('t')
             ->join('TaskTasktype tt','t.id =tt.tId ')
+            ->join('TaskData td', 't.id=td.tid and td.tDate=' . $tDate, 'left')
             ->where($where)
             ->group('t.id')
-            ->field('t.id,t.deptNo,t.pId,t.content,t.releaseTime,t.timeLimit,t.level,tt.typeId,tt.tId')
+            ->field(['t.*','tt.typeId','tt.tId','td.status'=>'currMonthStatus'])
             ->select();
+            // echo model('Task')->getLastSql();exit;
 
         foreach($result as $k=>$v){
             $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
