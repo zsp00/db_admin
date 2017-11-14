@@ -32,7 +32,11 @@ create table d_process_data
   pId                  int                       not null            comment '流程Id',
   levelNo              tinyint                   not null            comment '流程第几步',
   audit_user           varchar(2000)             not null            comment '参与到该步流程的人员、部门，json格式',
-  pDescribe            varchar(200)              not null            comment '流程步骤描述'
+  pDescribe            varchar(200)              not null            comment '流程步骤描述',
+  commitAll            boolean                   not null            comment '是否需要全部提交',
+  deptNos              varchar(1000)             not null            comment '参与到该步骤的部门',
+  empNos               varchar(1000)             not null            comment '参与到该步骤的人员',
+  notInIds             varchar(1000)             not null            comment '该步骤排除的人员'
 );
 
 

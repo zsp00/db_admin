@@ -21,9 +21,10 @@ class TaskLog extends Model
             'tId'   =>  $tId,
             'tDId'  =>  $tDId,
             'type'  =>  $type,
-            'empNo' =>  $empNo
+            'empNo' =>  $empNo,
+            'createTime'=>time()
         ];
-        $tLId = $this->save($data);
+        $tLId = $this->isupdate(false)->insert($data);
         $tLId = $this->getLastInsID();
         if(!$tLId) {
             return false;
