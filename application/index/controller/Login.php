@@ -31,7 +31,7 @@ class Login extends Controller
             if($info){
                 //检查用户所属公司是否参与
                 $ParticipateComp = new ParticipateComp();
-                if(!$ParticipateComp->isParticipate($info['COMP_NO'])){
+                if(!$ParticipateComp->isParticipate($info['COMP_NO'],$info['EMP_NO'])){
                     $this->error('您所在的公司不参与');
                 }
                 $result = $UserEmp->login($info,$remember);

@@ -144,5 +144,12 @@ class OrgDept extends Model
 			return $deptInfo['PARENT_DEPT_NO'];
 		}
 	}
+    //根据组织id查询所在公司的id
+	public function getCompNo($deptNo)
+    {
+        $deptNo = $this->getDeptNo($deptNo);
+        $compNo = $this->where(['DEPT_NO'=>$deptNo])->value('COMP_NO');
+        return $compNo;
+    }
 
 }

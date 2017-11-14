@@ -13,6 +13,7 @@ class Task extends Common
     public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '')
     {
         $userInfo = getUserInfo();
+
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
         if($pcInfo){
@@ -57,7 +58,7 @@ class Task extends Common
         ];
         $userInfo = getUserInfo();
         $ParticipateDept = new ParticipateDept();
-        $result['isParticipate'] = $ParticipateDept->isParticipate($userInfo['DEPT_NO']) ? true : false;
+        $result['isParticipate'] = $ParticipateDept->isParticipate($userInfo['DEPTNO'],$userInfo['EMP_NO']) ? true : false;
         $OrgDept = new OrgDept();
         $result['deptName'] = $OrgDept->getNameList($userInfo['DEPTNO']);
         $ParticipateComp = new ParticipateComp();

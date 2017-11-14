@@ -6,9 +6,16 @@ use think\Model;
 class ParticipateDept extends Model
 {
     /*
-     * 公司是否参与
+     * 组织是否参与
      */
-    public function isParticipate($compNo){
-        return $this->where(['deptNo'=>$compNo,'status'=>1])->find();
+    public function isParticipate($deptNo){
+        $result = $this->where(['deptNo'=>$deptNo,'status'=>1])->find();
+        if(!$result){
+            $userInfo = getUserInfo();
+            $deptNo = Model('Assist')->where(['EMP_NO'=>$userInfo['EMP_NO']])->value('DEPT_NO');
+            $deptNo = Model('OrgDept')->getDeptNo($deptNo);
+            $result = $this->where(['deptNo'=>$deptNo,'status'=>1])->find();
+        }
+        return $result;
     }
 }
