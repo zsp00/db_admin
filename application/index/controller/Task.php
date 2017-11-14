@@ -10,7 +10,7 @@ use app\common\model\TaskLog;
 
 class Task extends Common
 {
-    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '')
+    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifCommit = '', $dept = '', $needToDo = 'true')
     {
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
@@ -19,32 +19,42 @@ class Task extends Common
         }else{
             $this->error('您所在的分公司不参与');
         }
+
         $OrgDept = new OrgDept();
         $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
-        $map = [
-            'content'   =>  ['like','%'.$keyword.'%'],
-            'status'    =>  ['in', '1,2']
-        ];
 
-        //获取权限
-        $Identity = new Identity();
-        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
+        // 查询当前用户有没有查看所有任务列表的权限
+        $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
+        $map = [
+                'content'   =>  ['like','%'.$keyword.'%'],
+                'status'    =>  ['in', '1,2'],
+            ];
+        $flag = false;       // 是否能查看所有任务列表的标识
+        if ($res)
+            $flag = true;
+        else
+            $map['deptNo'] =  $deptNo;
 
         $Task = new \app\common\model\Task();
 
-        if($level !== ''){
+        // 检索条件
+        if($level !== '')      // 级别
             $map['level'] = $level;
-        }
-        if ($typeId !== '')
+        if ($typeId !== '')    // 分类
             $map['typeId'] = $typeId;
+        if ($ifCommit !== '')    // 是否提交
+            $map['ifCommit'] = $ifCommit;
+        if ($dept !== '')      // 部门
+            $map['deptNo'] = $dept;
 
         $tDate = date('Ym');
-
-        $result = $Task->getList($map, $tDate, $page, $listRow);
+        $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
+        //获取权限
         $Identity = new Identity();
         $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
         $result['identitys'] = $identitys;
         $result['date'] = $pcInfo;
+        $result['flag'] = $flag;
         $this->success($result);
     }
 
@@ -435,5 +445,53 @@ class Task extends Common
             Model('TaskType')->where(['id' => $typeId])->update(['status' => '0']);
             $this->success('禁用成功');
         }
+    }
+
+    // 第三级用户批量提交任务
+    public function commitAll()
+    {
+        $tDate = $tDate = date('Ym');
+        $userInfo = getUserInfo();
+        $empNo = $userInfo['EMP_NO'];
+        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+
+        $list = model('Task')->alias('task')
+            ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+            ->where(['task.status'=>['in', '1,2']])
+            ->where(function ($query) use ($deptNo, $empNo) {
+                $query->where([
+                    'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                ])->whereOr([
+                    'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                ]);
+            })->where(function ($query) use ($empNo) {
+                $query->where([
+                    'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                ]);
+            })->field([
+                'task.*',
+                'task_data.id'              =>  'currMonthId',
+                'task_data.currentLevel'    =>  'taskDataStatus',
+                'task_data.nextLevel'       =>  'taskDataNextStatus'
+            ])->group('task.id')->select();
+
+        $result = true;
+        foreach ($list as $k => $v)
+        {
+            $update = array(
+                'currentLevel'  =>  $v['taskDataStatus'] + 1,
+                'nextLevel'     =>  $v['taskDataNextStatus'] + 1
+            );
+            if (model('TaskData')->where(['id'=>$v['currMonthId']])->update($update) !== false)
+                $result = model('TaskLog')->addLog($v['id'],$v['currMonthId'],'submit',$empNo,$deptNo) && $result;
+            else
+                $result = false && $result;
+        }
+        if ($result)
+            $this->success('全部提交成功！');
+        else
+            $this->error();
     }
 }

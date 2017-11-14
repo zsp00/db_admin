@@ -6,6 +6,10 @@ class ProcessData extends Model
 {
 	protected $autoWriteTimestamp = false;
 
+    protected $insert = [
+        'commitAll' =>  0
+    ];
+
 	/**
      * 获取当前登录用户能参与到哪个流程中    
      * @param  int $pId 流程Id

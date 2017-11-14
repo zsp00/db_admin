@@ -5,6 +5,7 @@ use think\Model;
 
 class TaskData extends Model
 {
+    protected $autoWriteTimestamp = false;
 
     public $statusMsg = [
         '1'     =>  '未提交',

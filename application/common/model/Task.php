@@ -13,50 +13,104 @@ class Task extends Model
     ];
     protected $_participateLevel = null;
 
-    public function getList($map, $tDate, $page = 1, $listRow = 20) {
+    public function getList($map, $tDate, $page = 1, $listRow = 20, $needToDo = true) {
         $result = [
             'data'  =>  null,
             'total' =>  0,
             'currPage' => $page
         ];
+        $flag = false;    // 是否有查看所有任务列表的权限
         $where = [];
+
+        $userInfo = getUserInfo();
+        $empNo = $userInfo['EMP_NO'];
+        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+
         foreach($map as $k=>$v)
         {
             if ($k == 'typeId')
                 $where['task_tasktype.'.$k] = $v;
+            elseif ($k == 'ifCommit')
+                $flag = true;
             else
                 $where['task.'.$k] = $v;
         }
-        $model = $this->alias('task')
-            ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"')
-            ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->where($where)
-            ->field([
-                'task.*',
-                'task_data.completeSituation',
-                'task_data.problemSuggestions',
-                'task_data.analysis',
-                'task_data.currentLevel'    =>  'taskDataStatus',
-                'task_data.status'          =>  'currMonthStatus'
-            ]);
-        $list = $model->page($page,$listRow)
-            ->select();
-        $result['total'] = $this->alias('task')
-            ->join('task_data', 'task.id = task_data.tId and task_data.tDate = "'.$tDate.'"')
-            ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->where($where)
-            ->field([
-                'task.*',
-                'task_data.completeSituation',
-                'task_data.problemSuggestions',
-                'task_data.analysis',
-                'task_data.currentLevel'    =>  'taskDataStatus',
-                'task_data.status'          =>  'currMonthStatus'
-            ])->count();
-
+        if ($needToDo == 'true')
+        {
+            $model = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+                ->where($where)
+                ->where(function ($query) use ($deptNo, $empNo) {
+                    $query->where([
+                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                    ])->whereOr([
+                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                    ]);
+                })->where(function ($query) use ($empNo) {
+                    $query->where([
+                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                    ]);
+                })->field([
+                    'task.*',
+                    'task_data.completeSituation',
+                    'task_data.problemSuggestions',
+                    'task_data.analysis',
+                    'task_data.currentLevel'    =>  'taskDataStatus',
+                    'task_data.status'          =>  'currMonthStatus',
+                    'process_data.commitAll'    =>  'commitAll'
+                ]);
+            $list = $model->page($page,$listRow)
+                ->group('task.id')->select();
+            $result['total'] = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId')
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+                ->where($where)
+                ->where(function ($query) use ($deptNo, $empNo) {
+                    $query->where([
+                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                    ])->whereOr([
+                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                    ]);
+                })->where(function ($query) use ($empNo) {
+                    $query->where([
+                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                    ]);
+                })->group('task.id')->count();
+            $result['dbCount'] = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId')
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->where($where)->group('task.id')->count();
+        }
+        else 
+        {
+            $model = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->where($where)
+                ->field([
+                    'task.*',
+                    'task_data.completeSituation',
+                    'task_data.problemSuggestions',
+                    'task_data.analysis',
+                    'task_data.currentLevel'    =>  'taskDataStatus',
+                    'task_data.status'          =>  'currMonthStatus'
+                ]);
+            $list = $model->page($page,$listRow)
+                ->group('task.id')->select();
+            $result['total'] = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId')
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->where($where)->group('task.id')->count();
+            $result['dbCount'] = $result['total'];
+        }
+        
+        $commitNum = 0;
+        $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
         if($list){
             $OrgDept = new OrgDept();
-            $taskDataStatusMsg = new TaskData();
             foreach($list as $k=>$v)
             {
                 $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
@@ -65,9 +119,28 @@ class Task extends Model
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
+                $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
+                if ($v['taskDataStatus'] >= $participateLevel[0])    // 针对于当前登录用户  判断本月提交了多少个任务
+                    $commitNum++;
+                if ($flag)                  // 需要按照是否提交检索
+                {
+                    if ($map['ifCommit'] == 'true')      // 按照已提交检索
+                    {
+                        if ($v['taskDataStatus'] >= $participateLevel[0])      // 该任务当前没有进行到该用户能参与到的步骤，未提交
+                            $taskList[] = $list[$k];
+                    }
+                    elseif($map['ifCommit'] == 'false')  //　按照未提交检索
+                    {
+                        if ($v['taskDataStatus'] < $participateLevel[0])    // 该任务当前进行到该用户能参与到的步骤，已提交
+                            $taskList[] = $list[$k];
+                    }
+                }
+                else
+                    $taskList[] = $list[$k];
             }
         }
-        $result['data'] = $list;
+        $result['commitNum'] = $commitNum;
+        $result['data'] = $taskList;
         return $result;
     }
 
