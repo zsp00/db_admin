@@ -38,8 +38,13 @@ function getUserInfo($empNo = ''){
 
     }
     $model = new \app\common\model\UserEmp();
+    $info = $model->getUserInfo($empNo);
 
-    return $model->getUserInfo($empNo);
+    // 检查该用户是否外勤到别的部门,如果外勤到了别的部门，将部门编号改为当前外勤的部门
+    if ($deptNo = Model('Assist')->where(['EMP_NO'=>$info['EMP_NO']])->value('DEPT_NO'))
+        $info['DEPTNO'] = $deptNo;
+
+    return $info;
 }
 function getCompNo($empNo = ''){
     $userInfo = getUserInfo($empNo);

@@ -100,6 +100,7 @@ class Task extends Model
                 ]);
             $list = $model->page($page,$listRow)
                 ->group('task.id')->select();
+                // echo $this->getLastSql();exit;
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId')
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
@@ -114,12 +115,15 @@ class Task extends Model
             foreach($list as $k=>$v)
             {
                 $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
-                $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : '审批中');
+                $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : ($v['currMonthStatus'] == 1 ? '审批中' : '完成审批'));
                 $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
+                if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
+                    continue;
+
                 if ($v['taskDataStatus'] >= $participateLevel[0])    // 针对于当前登录用户  判断本月提交了多少个任务
                     $commitNum++;
                 if ($flag)                  // 需要按照是否提交检索

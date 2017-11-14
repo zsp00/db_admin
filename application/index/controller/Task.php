@@ -13,14 +13,12 @@ class Task extends Common
     public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifCommit = '', $dept = '', $needToDo = 'true')
     {
         $userInfo = getUserInfo();
-
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
         if($pcInfo){
         }else{
             $this->error('您所在的分公司不参与');
         }
-
         $OrgDept = new OrgDept();
         $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
 

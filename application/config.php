@@ -242,10 +242,11 @@ return [
         // 数据库类型
         'type'        => 'mysql',
         // 服务器地址
-        'hostname'       => '172.16.10.198',
-        // 'hostname'       => '127.0.0.1',
+        // 'hostname'       => '172.16.10.198',
+        'hostname'       => '127.0.0.1',
         // 数据库名
-        'database'    => 'zsgl_dev',
+        // 'database'    => 'zsgl_dev',
+        'database'    => 'web_portal',
         // 数据库用户名
         'username'    => 'root',
         // 数据库密码
@@ -259,8 +260,8 @@ return [
         // 数据库类型
         'type'        => 'mysql',
         // 服务器地址
-        'hostname'       => '172.16.10.198',
-        //       'hostname'       => '127.0.0.1',
+        // 'hostname'       => '172.16.10.198',
+        'hostname'       => '127.0.0.1',
         // 数据库名
         'database'    => 'db',
         // 数据库用户名

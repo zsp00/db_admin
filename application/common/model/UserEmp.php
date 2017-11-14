@@ -49,6 +49,7 @@ class UserEmp extends \app\common\model\User implements UserInterface
             $remember = false;
             $cookieTime = $this->noRemember;
         }
+        
         //用户的岗位放到session中
         session('member',$info);
         cookie('member',
