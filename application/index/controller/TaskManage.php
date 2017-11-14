@@ -156,11 +156,15 @@ class TaskManage extends Common
     //督办任务
     public function taskSupervice($id)
     {
+        $userInfo = getUserInfo();
         if(empty($id)){
             $this->error('请选择督办任务！');
         }
         if(is_array($id)){
            foreach($id as $k=>$v){
+               if($v['taskDataValue'] == true){
+                   continue;
+               }
                $pId = Model('Task')->where(['id'=>$v['id']])->value('pId');
                $tDate = date('Ym',time());
                $taskDateInfo = [
@@ -170,7 +174,14 @@ class TaskManage extends Common
                    'nextLevel' => 2,
                    'tDate' => $tDate,
                ];
+               $SupRecord = [
+                   'srUser' => $userInfo['EMP_NO'],
+                   'tId' => $v['id'],
+                   'srDate' => $tDate,
+                   'srTime' => time()
+               ];
                $result = Model('TaskData')->insert($taskDateInfo);
+               $result2 = Model('SuperviseRecord')->insert($SupRecord);
            }
         }else{
             $pId = Model('Task')->where(['id'=>$id])->value('pId');
@@ -182,16 +193,21 @@ class TaskManage extends Common
                 'nextLevel' => 2,
                 'tDate' => $tDate,
             ];
+            $SupRecord = [
+                'srUser' => $userInfo['EMP_NO'],
+                'tId' => $id,
+                'srDate' => $tDate,
+                'srTime' => time()
+            ];
             $result =Model('TaskData')->insert($taskDateInfo);
+            $result2 = Model('SuperviseRecord')->insert($SupRecord);
         }
-        if($result){
+        if($result && $result2){
             $this->success('任务开始督办!');
         }else{
             $this->error('任务督办失败!');
         }
     }
-
-
 }
 
 
