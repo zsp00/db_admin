@@ -19,7 +19,13 @@ class TaskLogData extends Model
         if(!isset($id)){
             return false;
         }
-        $result = Model('TaskLogData')->where(['tLId' => $id,'deptNo'=>$deptNo])->select();
+        $result = Model('TaskLogData')->where(['tLId' => $id])
+		    ->where(function ($query) use ($deptNo){
+                $query->where([
+					'deptNo'=>'0'
+                ])
+				->whereor(['deptNo'=>$deptNo]);
+            })->select();
         if(!$result){
             return false;
         }

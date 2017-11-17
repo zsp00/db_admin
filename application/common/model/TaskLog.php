@@ -56,4 +56,60 @@ class TaskLog extends Model
         }
         return true;
     }
+	//驳回记录插入日志
+	 public function addRejectLog($tId,$tDId,$type,$empNo,$reason){
+        $data = [
+            'tId'   =>  $tId,
+            'tDId'  =>  $tDId,
+            'type'  =>  $type,
+            'empNo' =>  $empNo,
+            'createTime'=>time()
+        ];
+        $tLId = $this->isupdate(false)->insert($data);
+        $tLId = $this->getLastInsID();
+        if(!$tLId) {
+            return false;
+        }
+		$logData = [
+			'tLId' => $tLId,
+			'field' => $type,
+			'old' => '0',
+			'new' => $reason,
+			'deptNo' => '0'
+		];
+		$TaskLogDataModel = new TaskLogData();
+        $result = $TaskLogDataModel->insert($logData);
+        return true;
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

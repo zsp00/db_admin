@@ -5,6 +5,11 @@ use think\Model;
 
 class Task extends Model
 {
+    protected $taskStatusMsg = [
+        '0'     =>  '驳回',
+        '1'     =>  '填报中',
+        '2'     =>  '审核中'
+    ];
     protected $statusMsg = [
         '-1'    =>  '删除',
         '0'     =>  '禁用',
@@ -25,15 +30,18 @@ class Task extends Model
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-
+		$ifStatus = '';
         foreach($map as $k=>$v)
         {
-            if ($k == 'typeId')
-                $where['task_tasktype.'.$k] = $v;
-            elseif ($k == 'ifCommit')
-                $flag = true;
-            else
-                $where['task.'.$k] = $v;
+            if ($k == 'typeId'){
+				$where['task_tasktype.'.$k] = $v;
+			} else if ($k == 'ifStatus'){
+				$ifStatus = $map['ifStatus'];
+                $flag = true;				
+			} else{
+                $where['task.'.$k] = $v;				
+			}
+
         }
         if ($needToDo == 'true')
         {
@@ -121,12 +129,14 @@ class Task extends Model
                 $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
+                $list[$k]['getStepIds'] = $participateLevel['0'];
+                $list[$k]['getTaskStatusMsg'] = Model('Task')->getTaskStatusMsg($v['id']);
                 if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
                     continue;
 
                 if ($v['taskDataStatus'] >= $participateLevel[0])    // 针对于当前登录用户  判断本月提交了多少个任务
                     $commitNum++;
-                if ($flag)                  // 需要按照是否提交检索
+/*                 if ($flag)                  // 需要按照是否提交检索
                 {
                     if ($map['ifCommit'] == 'true')      // 按照已提交检索
                     {
@@ -139,10 +149,19 @@ class Task extends Model
                             $taskList[] = $list[$k];
                     }
                 }
-                else
-                    $taskList[] = $list[$k];
+                else */				
+                $taskList[] = $list[$k];
             }
+			if($ifStatus != ''){
+				foreach($taskList as $k2=>$v2){
+					if($ifStatus != $v2['getTaskStatusMsg']){
+						unset($taskList[$k2]);
+					}
+				}
+			}
+
         }
+
         $result['commitNum'] = $commitNum;
         $result['data'] = $taskList;
         return $result;
@@ -234,9 +253,33 @@ class Task extends Model
         }
         return [$participate, $notIn];
     }
+    /**
+     * 获取任务某个月的状态
+     * @param  int $id            任务Id
+     * @return string             任务状态信息（0 =》驳回，1 =》填报中，2 =》审核中）
+     */
+    public function getTaskStatusMsg($id)
+    {
+        $status = '';
+        $taskDataStatusMsg = new Task();
+        $pId = Model('Task')->where(['id'=>$id])->value('pId');
+        $maxLevel = Model('Process')->where('id', $pId)->value('level');
+        $taskData = Model('TaskData')->where(['tId'=>$id,'status'=>'1'])->find();
+		$currentLevel = $taskData['currentLevel'];
+		$taskLog = Model('taskLog')->where(['tId'=>$id,'tDId'=>$taskData['id']])->select();
+		$lastTaskLog = array_pop($taskLog);
+        if($lastTaskLog['type'] == 'reject'){
+			$status = $taskDataStatusMsg->taskStatusMsg[0];
+		} else if($currentLevel < '2'){
+            $status = $taskDataStatusMsg->taskStatusMsg[1];
+        } else if($currentLevel <= $maxLevel){
+            $status = $taskDataStatusMsg->taskStatusMsg[2];
+        } 
+        return $status;
+    }
 
     /**
-     * 获取某个人某个月的状态
+     * 获取任务某个月的状态
      * @param  int $pId             任务执行的流程Id
      * @param  int $currStep        任务当前进行到了第几步
      * @param  int $currMonthStatus 任务在当前月的状态，task_data表中的status
@@ -248,11 +291,6 @@ class Task extends Model
         $stepIds = $this->_participateLevel == null ? Model('ProcessData')->getStepIds($pId) : $this->_participateLevel;
         $processLevel = model('Process')->where('id', $pId)->value('level');
         $taskDataStatusMsg = new TaskData();
-        /* 如果参与到倒数第一、二步:
-         * 未提交：任务流程进行到倒数第一、二步或还没有进行到倒数第一、二步，
-         * 待确认：任务流程进行到倒数第一部，
-         * 已确认：任务流程进行到最后一步，并且该任务该月已关闭
-         */
         if ($stepIds[0] >= $processLevel - 1)
         {
             if ($currStep <= $processLevel - 1)
@@ -262,11 +300,6 @@ class Task extends Model
             else
                 $msg = $taskDataStatusMsg->statusMsg[2];
         }
-        /* 如果任务在其他的步骤中
-         * 未提交：任务流程进行到当前用户能参与到的步骤中
-         * 待确认：任务流程进行到用户能参与到的下一步
-         * 已确认：任务流程进行到用户能参与到的下两步
-         */
         else
         {
             if ($currStep <= $stepIds[0])

@@ -10,7 +10,7 @@ use app\common\model\TaskLog;
 
 class Task extends Common
 {
-    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifCommit = '', $dept = '', $needToDo = 'true')
+    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = '', $needToDo = 'true')
     {
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
@@ -41,10 +41,11 @@ class Task extends Common
             $map['level'] = $level;
         if ($typeId !== '')    // 分类
             $map['typeId'] = $typeId;
-        if ($ifCommit !== '')    // 是否提交
-            $map['ifCommit'] = $ifCommit;
+        if ($ifStatus !== '')    // 是否提交
+            $map['ifStatus'] = $ifStatus;
         if ($dept !== '')      // 部门
             $map['deptNo'] = $dept;
+
 
         $tDate = date('Ym');
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
@@ -251,8 +252,11 @@ class Task extends Common
      * @param  int $nextLevel    当前流程的下一步
      * @return array               驳回结果
      */
-    public function reject($id, $currentLevel, $nextLevel)
+    public function reject($data, $reason='')
     {
+        $id = $data['id'];
+        $currentLevel = $data['currentLevel'];
+        $nextLevel = $data['nextLevel'];
         //获取用户的权限
         $userInfo = getUserInfo();
         $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
@@ -267,13 +271,15 @@ class Task extends Common
             $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
         }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
-        if ($updateStatus === false)
+        if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
-        else
+        }else{
             //添加驳回日志
-            $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'reject',$userInfo['EMP_NO'],$deptNo);
+            $result = Model('TaskLog')->addRejectLog($taskDataInfo['tId'],$taskDataInfo['id'],'reject',$userInfo['EMP_NO'],$reason);
             $this->success('驳回成功!');
-    }
+        }
+
+    } 
 
     /**
      * 确认任务
@@ -302,27 +308,6 @@ class Task extends Common
             $this->success('确认成功!');
         }
     }
-
-    /**
-     * 完成任务
-     */
-//    public function complete($id)
-//    {
-//        $userInfo = getUserInfo();
-//        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-//        $tId = Model('TaskData')->where(['id' => $id])->value('tId');
-//        $TaskModel = new \app\common\model\Task();
-//        //任务总的完成task表
-//        $result = $TaskModel->where(['id' => $tId])->update(['status' => '2']);
-//        if($result){
-//            //添加完成日志
-//            $result = Model('TaskLog')->addLog($tId,$id,'complete',$userInfo['EMP_NO'],$deptNo);
-//            return $this->success('任务完成!');
-//        }else{
-//            return $this->error('任务未完成');
-//        }
-//    }
-
     /*
      * 获取日志
      */
