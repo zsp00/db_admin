@@ -7,7 +7,7 @@ class TaskManage extends Common
     //获取全部任务列表
     public function getTaskList()
     {
-        $result = Model('Task')->where(['status'=>'1'])->select();
+        $result = Model('Task')->select();
         foreach($result as $k=>$v){
             $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
 //            $result[$k]['typeId'] = Model('TaskType')->where(['id' => $v['typeId']])->value('typeName');

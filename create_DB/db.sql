@@ -72,6 +72,10 @@ CREATE TABLE d_task
   typeId               int                       not null            comment '任务分类Id',
   serialNumber         int                       DEFAULT 0           COMMENT '序号',
   content              varchar(500)              NOT NULL            COMMENT '任务内容',
+  duty                 varchar(300)                                  comment '部门责任',
+  firstLevel           int                       not null            comment '所属一级目标任务',
+  secondLevel          int                       not null            comment '所属二级目标任务',
+  thirdLevel           int                       not null            comment '所属三级目标任务',
   releaseTime          int                       NOT NULL            COMMENT '发布时间，时间戳',
   timeLimit            mediumint                 NOT NULL            COMMENT '时限',
   level                enum('D','C','B','A')     NOT NULL            COMMENT '等级配分',
@@ -113,4 +117,39 @@ create table d_tasklist_authority
   id                   int                       auto_increment primary key,
   type                 enum('dept','person','tag')       not null,
   value                varchar(10)               not null
+);
+
+
+-- 一级目标任务
+create table d_task_level_first
+(
+  id                   int                       auto_increment primary key,
+  serialNum            tinyint                   not null            comment '序号',
+  leader               varchar(10)               not null            comment '牵头领导',
+  title                varchar(300)              not null            comment '任务标题',
+  detail               varchar(500)              not null            comment '详细说明'
+);
+
+
+-- 二级目标任务
+create table d_task_level_second
+(
+  id                   int                       auto_increment primary key,
+  serialNum            tinyint                   not null            comment '序号',
+  leader               varchar(10)               not null            comment '责任领导',
+  title                varchar(300)              not null            comment '任务标题',
+  detail               varchar(500)              not null            comment '详细说明',
+  deptNo               varchar(8)                not null            comment '责任部室',
+  prevLevel            int                       not null            comment '上一级'
+);
+
+
+-- 三级目标任务
+create table d_task_level_third
+(
+  id                   int                       auto_increment primary key,
+  detail               varchar(300)              not null            comment '任务举措',
+  duty                 varchar(300)              not null            comment '部门责任',
+  leader               varchar(10)               not null            comment '责任领导',
+  prevLevel            int                       not null            comment '上一级'
 );
