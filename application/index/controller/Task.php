@@ -478,4 +478,45 @@ class Task extends Common
         else
             $this->error();
     }
+
+    /**
+     * 判断第三级用户
+     * @return [type] [description]
+     */
+    public function checkCount()
+    {
+        $tDate = $tDate = date('Ym');
+        $userInfo = getUserInfo();
+        $empNo = $userInfo['EMP_NO'];
+        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+
+        $countDoing = model('Task')->alias('task')
+            ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+            ->where(['task.status'=>['in', '1,2']])
+            ->where(function ($query) use ($deptNo, $empNo) {
+                $query->where([
+                    'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                ])->whereOr([
+                    'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                ]);
+            })->where(function ($query) use ($empNo) {
+                $query->where([
+                    'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                ]);
+            })->group('task.id')->count();
+
+        $countAll = model('Task')->alias('task')
+            ->join('task_data', 'task.id = task_data.tId')
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
+            ->where(['task.status'=>['in', '1,2']])->group('task.id')->count();
+
+        if ($countDoing == $countAll)
+            $this->success();
+        elseif ($countDoing > $countAll)
+            $this->error('系统出现故障，请联系管理员！');
+        else
+            $this->error('还有任务没有被提交，暂时不能执行全部提交！');
+    }
 }
