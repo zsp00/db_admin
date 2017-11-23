@@ -124,7 +124,7 @@ create table d_tasklist_authority
 create table d_task_level_first
 (
   id                   int                       auto_increment primary key,
-  serialNum            tinyint                   not null            comment '序号',
+  serialNum            int                       not null            comment '序号',
   leader               varchar(10)               not null            comment '牵头领导',
   title                varchar(300)              not null            comment '任务标题',
   detail               varchar(500)              not null            comment '详细说明'
@@ -135,7 +135,7 @@ create table d_task_level_first
 create table d_task_level_second
 (
   id                   int                       auto_increment primary key,
-  serialNum            tinyint                   not null            comment '序号',
+  serialNum            int                       not null            comment '序号',
   leader               varchar(10)               not null            comment '责任领导',
   title                varchar(300)              not null            comment '任务标题',
   detail               varchar(500)              not null            comment '详细说明',
@@ -148,6 +148,7 @@ create table d_task_level_second
 create table d_task_level_third
 (
   id                   int                       auto_increment primary key,
+  serialNum            int                       not null            comment '序号',
   detail               varchar(300)              not null            comment '任务举措',
   duty                 varchar(300)              not null            comment '部门责任',
   leader               varchar(10)               not null            comment '责任领导',
