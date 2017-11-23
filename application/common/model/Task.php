@@ -46,6 +46,9 @@ class Task extends Model
         if ($needToDo == 'true')
         {
             $model = $this->alias('task')
+                ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+                ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+                ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
                 ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
                 ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
@@ -62,6 +65,17 @@ class Task extends Model
                     ]);
                 })->field([
                     'task.*',
+                    't1.leader'				=>	'leader1',
+                    't1.title'				=>	'title1',
+                    't1.detail'				=>	'detail1',
+                    't2.leader'				=>	'leader2',
+                    't2.title'				=>	'title2',
+                    't2.detail'				=>	'detail2',
+                    't2.deptNo'				=>	'deptNo2',
+                    't3.serialNum'			=>	'serialNum',
+                    't3.detail'				=>	'detail3',
+                    't3.duty'				=>	'duty3',
+                    't3.leader'				=>	'leader3',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
@@ -95,11 +109,25 @@ class Task extends Model
         else 
         {
             $model = $this->alias('task')
+                ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+                ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+                ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
                 ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
                 ->where($where)
                 ->field([
                     'task.*',
+                    't1.leader'				=>	'leader1',
+                    't1.title'				=>	'title1',
+                    't1.detail'				=>	'detail1',
+                    't2.leader'				=>	'leader2',
+                    't2.title'				=>	'title2',
+                    't2.detail'				=>	'detail2',
+                    't2.deptNo'				=>	'deptNo2',
+                    't3.serialNum'			=>	'serialNum',
+                    't3.detail'				=>	'detail3',
+                    't3.duty'				=>	'duty3',
+                    't3.leader'				=>	'leader3',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
@@ -108,14 +136,12 @@ class Task extends Model
                 ]);
             $list = $model->page($page,$listRow)
                 ->group('task.id')->select();
-                // echo $this->getLastSql();exit;
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId')
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
                 ->where($where)->group('task.id')->count();
             $result['dbCount'] = $result['total'];
         }
-        
         $commitNum = 0;
         $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
         if($list){
@@ -124,10 +150,14 @@ class Task extends Model
             {
                 $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
                 $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : ($v['currMonthStatus'] == 1 ? '审批中' : '完成审批'));
-                $list[$k]['deptName'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
+                $list[$k]['deptNo'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
+                $list[$k]['leader1'] = Model('UserEmp')->getUserRealName($v['leader1']);
+                $list[$k]['leader2'] = Model('UserEmp')->getUserRealName($v['leader2']);
+                $list[$k]['leader3'] = Model('UserEmp')->getUserRealName($v['leader3']);
+                $list[$k]['deptNo2'] = Model('OrgDept')->getName($v['deptNo2']);
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
                 $list[$k]['getStepIds'] = $participateLevel['0'];
                 $list[$k]['getTaskStatusMsg'] = Model('Task')->getTaskStatusMsg($v['id']);
