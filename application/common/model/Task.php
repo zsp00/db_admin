@@ -49,9 +49,9 @@ class Task extends Model
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
                 ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
                 ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-                ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
                 ->where($where)
                 ->where(function ($query) use ($deptNo, $empNo) {
                     $query->where([
@@ -86,9 +86,9 @@ class Task extends Model
             $list = $model->page($page,$listRow)
                 ->group('task.id')->select();
             $result['total'] = $this->alias('task')
-                ->join('task_data', 'task.id = task_data.tId')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
                 ->where($where)
                 ->where(function ($query) use ($deptNo, $empNo) {
                     $query->where([
@@ -207,6 +207,7 @@ class Task extends Model
             foreach($taskDataList as $k=>$v)
             {
                 $taskDataList[$k]['taskSelect'] = $task['status'] == '1' ? false : true;
+                $taskDataList[$k]['commitAll'] = model('ProcessData')->where(['pId'=>$info['pId'], 'levelNo'=>$v['currentLevel']])->value('commitAll');
                 $steps = array();
                 // 获取流程步骤，拼凑页面步骤条数据
                 $processData = model('ProcessData')->where('pId', $info['pId'])->order('levelNo')->select();
