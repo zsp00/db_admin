@@ -5,4 +5,25 @@ use think\Model;
 class RelevantDepartments extends Model
 {
 	protected $autoWriteTimestamp = false;
+
+	public function getRelevantDept($value)
+    {
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

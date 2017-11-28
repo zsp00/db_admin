@@ -120,8 +120,14 @@ class TaskManage extends Common
             // echo model('Task')->getLastSql();exit;
 
         foreach($result as $k=>$v){
-            $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
-            $result[$k]['pId'] = Model('Process')->where(['id' => $v['pId']])->value('name');
+            $rule = '/^\d*$/';
+            $ruleResult = preg_match($rule, $v['deptNo'], $matches);
+            if($ruleResult){
+                $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
+            }else{
+                $result[$k]['deptNo'] = $v['deptNo'];
+            }
+//            $result[$k]['pId'] = Model('Process')->where(['id' => $v['pId']])->value('name');
             $result[$k]['timeLimit'] = substr($v['timeLimit'],0,4).'年'.substr($v['timeLimit'],4,6).'月';
             $result[$k]['taskDataValue'] = Model('TaskData')->getTaskDataValue($v['id']);
             $typeNum = Model('TaskTasktype')->where(['tId'=> $v['id']])->select();
@@ -166,41 +172,65 @@ class TaskManage extends Common
                    continue;
                }
                $pId = Model('Task')->where(['id'=>$v['id']])->value('pId');
+               $deptNo = Model('Task')->where(['id'=>$v['id']])->value('deptNo');
+               //正则匹配是组织id还是各部室各部门
+               $rule = '/^\d*$/';
+               $ruleResult = preg_match($rule, $deptNo, $matches);
+               if($ruleResult){
+                   $deptNo = [$deptNo];
+               }else{
+                   $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
+               }
                $tDate = date('Ym',time());
-               $taskDateInfo = [
-                   'tId' => $v['id'],
-                   'pId' => $pId,
-                   'currentLevel' => 1,
-                   'nextLevel' => 2,
-                   'tDate' => $tDate,
-               ];
-               $SupRecord = [
-                   'srUser' => $userInfo['EMP_NO'],
-                   'tId' => $v['id'],
-                   'srDate' => $tDate,
-                   'srTime' => time()
-               ];
-               $result = Model('TaskData')->insert($taskDateInfo);
-               $result2 = Model('SuperviseRecord')->insert($SupRecord);
+               foreach($deptNo as $k2 => $v2){
+                   $taskDateInfo = [
+                       'tId' => $v['id'],
+                       'pId' => $pId,
+                       'deptNo' => $v2,
+                       'currentLevel' => 1,
+                       'nextLevel' => 2,
+                       'tDate' => $tDate,
+                   ];
+                   $SupRecord = [
+                       'srUser' => $userInfo['EMP_NO'],
+                       'tId' => $id,
+                       'srDate' => $tDate,
+                       'srTime' => time()
+                   ];
+                   $result =Model('TaskData')->insert($taskDateInfo);
+                   $result2 = Model('SuperviseRecord')->insert($SupRecord);
+               }
            }
         }else{
             $pId = Model('Task')->where(['id'=>$id])->value('pId');
+            $deptNo = Model('Task')->where(['id'=>$id])->value('deptNo');
+            //正则匹配是组织id还是各部室各部门
+            $rule = '/^\d*$/';
+            $ruleResult = preg_match($rule, $deptNo, $matches);
+            if($ruleResult){
+                $deptNo = [$deptNo];
+            }else{
+                $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
+            }
             $tDate = date('Ym',time());
-            $taskDateInfo = [
-                'tId' => $id,
-                'pId' => $pId,
-                'currentLevel' => 1,
-                'nextLevel' => 2,
-                'tDate' => $tDate,
-            ];
-            $SupRecord = [
-                'srUser' => $userInfo['EMP_NO'],
-                'tId' => $id,
-                'srDate' => $tDate,
-                'srTime' => time()
-            ];
-            $result =Model('TaskData')->insert($taskDateInfo);
-            $result2 = Model('SuperviseRecord')->insert($SupRecord);
+            foreach($deptNo as $k => $v){
+                $taskDateInfo = [
+                    'tId' => $id,
+                    'pId' => $pId,
+                    'deptNo' => $v,
+                    'currentLevel' => 1,
+                    'nextLevel' => 2,
+                    'tDate' => $tDate,
+                ];
+                $SupRecord = [
+                    'srUser' => $userInfo['EMP_NO'],
+                    'tId' => $id,
+                    'srDate' => $tDate,
+                    'srTime' => time()
+                ];
+                $result =Model('TaskData')->insert($taskDateInfo);
+                $result2 = Model('SuperviseRecord')->insert($SupRecord);
+            }
         }
         if($result && $result2){
             $this->success('任务开始督办!');

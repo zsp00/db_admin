@@ -15,8 +15,7 @@ class Task extends Common
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
-        if($pcInfo){
-        }else{
+        if(!$pcInfo){
             $this->error('您所在的分公司不参与');
         }
         $OrgDept = new OrgDept();
@@ -24,19 +23,19 @@ class Task extends Common
 
         // 查询当前用户有没有查看所有任务列表的权限
         $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
-        $map = [
-                'content'   =>  ['like','%'.$keyword.'%'],
-                'status'    =>  ['in', '1,2'],
-            ];
         $flag = false;       // 是否能查看所有任务列表的标识
-        if ($res)
+        if ($res){
             $flag = true;
-        else
+        }else{
             $map['deptNo'] =  $deptNo;
-
-        $Task = new \app\common\model\Task();
+        }
 
         // 检索条件
+        $Task = new \app\common\model\Task();
+        $map = [
+            'content'   =>  ['like','%'.$keyword.'%'],
+            'status'    =>  ['in', '1,2'],
+        ];
         if($level !== '')      // 级别
             $map['level'] = $level;
         if ($typeId !== '')    // 分类
@@ -46,13 +45,12 @@ class Task extends Common
         if ($dept !== '')      // 部门
             $map['deptNo'] = $dept;
 
-
         $tDate = date('Ym');
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
         //获取权限
-        $Identity = new Identity();
-        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
-        $result['identitys'] = $identitys;
+//        $Identity = new Identity();
+//        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
+//        $result['identitys'] = $identitys;
         $result['date'] = $pcInfo;
         $result['flag'] = $flag;
         $this->success($result);

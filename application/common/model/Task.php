@@ -8,7 +8,8 @@ class Task extends Model
     protected $taskStatusMsg = [
         '0'     =>  '驳回',
         '1'     =>  '填报中',
-        '2'     =>  '审核中'
+        '2'     =>  '审核中',
+        '3'     =>  '审核完成'
     ];
     protected $statusMsg = [
         '-1'    =>  '删除',
@@ -24,9 +25,7 @@ class Task extends Model
             'total' =>  0,
             'currPage' => $page
         ];
-        $flag = false;    // 是否有查看所有任务列表的权限
         $where = [];
-
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
@@ -37,7 +36,6 @@ class Task extends Model
 				$where['task_tasktype.'.$k] = $v;
 			} else if ($k == 'ifStatus'){
 				$ifStatus = $map['ifStatus'];
-                $flag = true;				
 			} else{
                 $where['task.'.$k] = $v;				
 			}
@@ -154,32 +152,14 @@ class Task extends Model
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
-                $list[$k]['leader1'] = Model('UserEmp')->getUserRealName($v['leader1']);
-                $list[$k]['leader2'] = Model('UserEmp')->getUserRealName($v['leader2']);
-                $list[$k]['leader3'] = Model('UserEmp')->getUserRealName($v['leader3']);
-                $list[$k]['deptNo2'] = Model('OrgDept')->getName($v['deptNo2']);
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
                 $list[$k]['getStepIds'] = $participateLevel['0'];
-                $list[$k]['getTaskStatusMsg'] = Model('Task')->getTaskStatusMsg($v['id']);
+                $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
                 if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
                     continue;
 
                 if ($v['taskDataStatus'] >= $participateLevel[0])    // 针对于当前登录用户  判断本月提交了多少个任务
                     $commitNum++;
-/*                 if ($flag)                  // 需要按照是否提交检索
-                {
-                    if ($map['ifCommit'] == 'true')      // 按照已提交检索
-                    {
-                        if ($v['taskDataStatus'] >= $participateLevel[0])      // 该任务当前没有进行到该用户能参与到的步骤，未提交
-                            $taskList[] = $list[$k];
-                    }
-                    elseif($map['ifCommit'] == 'false')  //　按照未提交检索
-                    {
-                        if ($v['taskDataStatus'] < $participateLevel[0])    // 该任务当前进行到该用户能参与到的步骤，已提交
-                            $taskList[] = $list[$k];
-                    }
-                }
-                else */				
                 $taskList[] = $list[$k];
             }
 			if($ifStatus != ''){
@@ -189,7 +169,6 @@ class Task extends Model
 					}
 				}
 			}
-
         }
 
         $result['commitNum'] = $commitNum;
@@ -295,16 +274,18 @@ class Task extends Model
         $taskDataStatusMsg = new Task();
         $pId = Model('Task')->where(['id'=>$id])->value('pId');
         $maxLevel = Model('Process')->where('id', $pId)->value('level');
-        $taskData = Model('TaskData')->where(['tId'=>$id,'status'=>'1'])->find();
+        $taskData = Model('TaskData')->where(['tId'=>$id])->find();
 		$currentLevel = $taskData['currentLevel'];
 		$taskLog = Model('taskLog')->where(['tId'=>$id,'tDId'=>$taskData['id']])->select();
 		$lastTaskLog = array_pop($taskLog);
         if($lastTaskLog['type'] == 'reject'){
-			$status = $taskDataStatusMsg->taskStatusMsg[0];
-		} else if($currentLevel < '2'){
-            $status = $taskDataStatusMsg->taskStatusMsg[1];
+			$status = 0;
+		}else if($taskData['status'] == 0){
+            $status = 3;
+        }else if($currentLevel < '2'){
+            $status = 1;
         } else if($currentLevel <= $maxLevel){
-            $status = $taskDataStatusMsg->taskStatusMsg[2];
+            $status = 2;
         } 
         return $status;
     }
