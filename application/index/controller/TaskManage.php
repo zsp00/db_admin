@@ -99,7 +99,7 @@ class TaskManage extends Common
             $where['typeId'] = $typeId;
         }
         if($deptNo !== ''){
-            $where['deptNo'] = $deptNo;
+            $where['t.deptNo'] = $deptNo;
         }
 
         if($taskdataStatus!== ''){
@@ -108,6 +108,7 @@ class TaskManage extends Common
             else
                 $where['td.status'] = null;
         }
+
         $tDate = date('Ym', time());
         $result = Model('Task')
             ->alias('t')
@@ -117,8 +118,6 @@ class TaskManage extends Common
             ->group('t.id')
             ->field(['t.*','tt.typeId','tt.tId','td.status'=>'currMonthStatus'])
             ->select();
-            // echo model('Task')->getLastSql();exit;
-
         foreach($result as $k=>$v){
             $rule = '/^\d*$/';
             $ruleResult = preg_match($rule, $v['deptNo'], $matches);
@@ -136,9 +135,7 @@ class TaskManage extends Common
             }
             $result[$k]['taskType'] = implode(',',$typeNum);
         }
-        if($result){
-            $this->success($result);
-        }
+        $this->success($result);
 
     }
 
