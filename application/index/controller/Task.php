@@ -21,21 +21,22 @@ class Task extends Common
         $OrgDept = new OrgDept();
         $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
 
-        // 查询当前用户有没有查看所有任务列表的权限
-        $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
-        $flag = false;       // 是否能查看所有任务列表的标识
-        if ($res){
-            $flag = true;
-        }else{
-            $map['deptNo'] =  $deptNo;
-        }
-
         // 检索条件
         $Task = new \app\common\model\Task();
         $map = [
             'content'   =>  ['like','%'.$keyword.'%'],
             'status'    =>  ['in', '1,2'],
         ];
+
+        // 查询当前用户有没有查看所有任务列表的权限
+        $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
+        $flag = false;       // 是否能查看所有任务列表的标识
+        if ($res){
+            $flag = true;
+        }else{
+            $map['task_data.deptNo'] =  $deptNo;
+        }
+
         if($level !== '')      // 级别
             $map['level'] = $level;
         if ($typeId !== '')    // 分类
