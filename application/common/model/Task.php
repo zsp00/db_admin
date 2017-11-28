@@ -181,13 +181,13 @@ class Task extends Model
         return $result;
     }
 
-    public function getInfo($id)
+    public function getInfo($id,$tdDeptNo)
     {
         $info = $this->where(['id'=>$id])->find();
         if($info) {
             $task = Model('Task')->where(['id'=>$id])->find();
             $TaskData = new TaskData();
-            $taskDataList = $TaskData->where(['tId'=>$id])->order(['tDate desc'])->select();
+            $taskDataList = $TaskData->where(['tId'=>$id,'deptNo'=>$tdDeptNo])->order(['tDate desc'])->select();
             foreach($taskDataList as $k=>$v)
             {
                 $taskDataList[$k]['taskSelect'] = $task['status'] == '1' ? false : true;

@@ -79,10 +79,10 @@ class Task extends Common
         $this->success($result);
     }
 
-    public function detail ($id) {
+    public function detail ($id,$tdDeptNo) {
         $userInfo = getUserInfo();
         $Task = new \app\common\model\Task();
-        $result = $Task->getInfo($id);
+        $result = $Task->getInfo($id,$tdDeptNo);
         if($result){
             $OrgDept = new OrgDept();
             $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
