@@ -33,14 +33,14 @@ class Task extends Model
 
         foreach($map as $k=>$v)
         {
-            if ($k == 'typeId'){
+            if ($k == 'typeId')
 				$where['task_tasktype.'.$k] = $v;
-			} else if ($k == 'ifStatus'){
+            else if ($k == 'deptNo')
+                $where['task_data.deptNo'] = $v;
+			else if ($k == 'ifStatus')
 				$ifStatus = $map['ifStatus'];
-			} else{
-                $where['task.'.$k] = $v;				
-			}
-
+			else
+                $where['task.'.$k] = $v;
         }
         if ($needToDo == 'true')
         {
