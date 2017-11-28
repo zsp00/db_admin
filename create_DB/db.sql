@@ -90,6 +90,7 @@ create table d_task_data
   id                   int                       auto_increment primary key,
   tId                  int                       not null            comment '任务Id',
   pId                  int                       not null            comment '流程Id，d_process_vice.id',
+  deptNo               varchar(10)               not null            comment '部门Id'
   currentLevel         tinyint                   not null            comment '当前流程走到哪一步',
   nextLevel            tinyint                   not null            comment '流程下一步',
   tDate                mediumint                 not null            comment '任务流程的月份，格式：201711',
@@ -139,7 +140,7 @@ create table d_task_level_second
   leader               varchar(10)               not null            comment '责任领导',
   title                varchar(300)              not null            comment '任务标题',
   detail               varchar(500)              not null            comment '详细说明',
-  deptNo               varchar(8)                not null            comment '责任部室',
+  deptNo               varchar(80)               not null            comment '责任部室',
   prevLevel            int                       not null            comment '上一级'
 );
 
@@ -153,4 +154,15 @@ create table d_task_level_third
   duty                 varchar(300)              not null            comment '部门责任',
   leader               varchar(10)               not null            comment '责任领导',
   prevLevel            int                       not null            comment '上一级'
+);
+
+
+-- 相关部门名称对应表
+create table d_relevant_departments
+(
+  id                   int                       auto_increment primary key,
+  relevantName         varchar(100)              not null,
+  deptNo               varchar(10)               not null,
+  deptName             varchar(100)              not null,
+  compNo               tinyint                   not null
 );

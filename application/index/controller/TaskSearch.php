@@ -29,7 +29,6 @@ class TaskSearch extends Common
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
 			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
             ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
-            ->join('Process p', 'task.pId=p.id')
             ->join('TaskTasktype tt', 'task.id =tt.tId')
 			->field([
 				'task.*',
@@ -46,24 +45,23 @@ class TaskSearch extends Common
 				't3.leader'				=>	'leader3',
 				'td.completeSituation'	=>	'complete',
 				'td.problemSuggestions'	=>	'problem',
-				'td.analysis'			=>	'analysis',
-				'p.name'				=>	'pName'
+				'td.analysis'			=>	'analysis'
 			])->where($where)->select();
 
 		foreach ($list as $k => $v)
 		{
-			$list[$k]['leader1'] = model('UserEmp')->getUserRealName($v['leader1']);
-			$list[$k]['leader2'] = model('UserEmp')->getUserRealName($v['leader2']);
-			$list[$k]['leader3'] = model('UserEmp')->getUserRealName($v['leader3']);
-			$list[$k]['deptNo2'] = model('OrgDept')->getName($v['deptNo2']);
-			$deptNo = model('OrgDept')->getName($v['deptNo']);
-			$list[$k]['deptNo'] = $deptNo == '' ? $v['deptNo'] : $deptNo;
-			$list[$k]['timeLimit'] = substr($v['timeLimit'],0,4).'年'.substr($v['timeLimit'],4,6).'月';
+			if (preg_match_all('/^\d*$/', $v['deptNo']))
+				$list[$k]['deptNo'] = model('OrgDept')->getName($v['deptNo']);
+			else 
+			{
+				$list[$k]['deptNo'] = $v['deptNo'];
+				$tIds = model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $v['deptNo']))->column('deptNo');
+
+			}
+			
 			$typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
 			$list[$k]['taskType'] = implode(',', model('TaskType')->where('id', 'in', implode(',', $typeIds))->column('typeName'));
-
 		}
-
 		$this->success('', '', $list);
 	}
 }
