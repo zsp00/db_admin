@@ -6,7 +6,7 @@ class Process extends Common
 {
 	/**
 	 * 获取公司以及部门Id及名称
-	 * @return array 公司及部门列表，格式[1010:[name:'运一', dept:[[deptNo:010101, deptName: '5号线乘务中心'], ...]], ...]
+	 * @return array 公司及部门列表，格式[{label:运一, value:1010, children: [{}, {}]}, ...]
 	 */
 	public function getCompDept()
 	{
@@ -16,10 +16,11 @@ class Process extends Common
 
 		foreach ($compList as $k => $v)
 		{
-			$result[$v['COMP_NO']] = array(
-				'name'	=>	$v['COMP_NAME'],
-				'dept'	=>	array()
+			$tmp = array(
+				'label'	=>	$v['COMP_NAME'],
+				'value'	=>	$v['COMP_NO']
 			);
+			
 		}
 
 		foreach ($deptList as $k => $v)

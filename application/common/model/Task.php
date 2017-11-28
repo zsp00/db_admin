@@ -30,6 +30,7 @@ class Task extends Model
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
 		$ifStatus = '';
+
         foreach($map as $k=>$v)
         {
             if ($k == 'typeId'){
@@ -74,15 +75,16 @@ class Task extends Model
                     't3.detail'				=>	'detail3',
                     't3.duty'				=>	'duty3',
                     't3.leader'				=>	'leader3',
+                    'task_data.deptNo'      =>  'tdDeptNo',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
                     'task_data.currentLevel'    =>  'taskDataStatus',
                     'task_data.status'          =>  'currMonthStatus',
-                    'process_data.commitAll'    =>  'commitAll'
+                    'process_data.commitAll'    =>  'commitAll',
+                    'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
                 ]);
-            $list = $model->page($page,$listRow)
-                ->group('task.id')->select();
+            $list = $model->page($page,$listRow)->group('task_data.id')->select();
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
@@ -98,11 +100,7 @@ class Task extends Model
                     $query->where([
                         'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
                     ]);
-                })->group('task.id')->count();
-            $result['dbCount'] = $this->alias('task')
-                ->join('task_data', 'task.id = task_data.tId')
-                ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->where($where)->group('task.id')->count();
+                })->group('task_data.id')->count();
         }
         else 
         {
@@ -110,7 +108,7 @@ class Task extends Model
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
                 ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
                 ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-                ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
                 ->where($where)
                 ->field([
@@ -126,35 +124,42 @@ class Task extends Model
                     't3.detail'				=>	'detail3',
                     't3.duty'				=>	'duty3',
                     't3.leader'				=>	'leader3',
+                    'task_data.deptNo'      =>  'tdDeptNo',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
                     'task_data.currentLevel'    =>  'taskDataStatus',
-                    'task_data.status'          =>  'currMonthStatus'
+                    'task_data.status'          =>  'currMonthStatus',
+                    'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
                 ]);
-            $list = $model->page($page,$listRow)
-                ->group('task.id')->select();
+            $list = $model->page($page,$listRow)->group('task_data.id')->order('serialNum, id')->select();
             $result['total'] = $this->alias('task')
-                ->join('task_data', 'task.id = task_data.tId')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->where($where)->group('task.id')->count();
-            $result['dbCount'] = $result['total'];
+                ->where($where)->group('task_data.id')->count();
         }
+        $result['dbCount'] = $this->alias('task')    // 显示本月督办任务数量
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->where($where)->group('task_data.id')->count();
+
+
         $commitNum = 0;
         $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
-        if($list){
+        if($list)
+        {
             $OrgDept = new OrgDept();
             foreach($list as $k=>$v)
             {
                 $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
                 $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : ($v['currMonthStatus'] == 1 ? '审批中' : '完成审批'));
-                $list[$k]['deptNo'] = $OrgDept->where(['DEPT_NO'=>$v['deptNo']])->value('DEPT_NAME');
+                $list[$k]['deptNo'] = $OrgDept->where(['DEPT_NO'=>$v['tdDeptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
-                $typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
-                $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', implode(',', $typeIds)]])->column('typeName'));
+                $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', $v['typeId']]])->column('typeName'));
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
                 $list[$k]['getStepIds'] = $participateLevel['0'];
                 $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
+
                 if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
                     continue;
 

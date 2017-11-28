@@ -3,8 +3,10 @@ namespace app\index\controller;
 
 class TaskSearch extends Common
 {
-	public function getTaskList($condition)
+	public function getTaskList($condition, $page, $listRow)
 	{
+		// dump(request()->param());
+		// exit;
 		$condition = json_decode($condition);
 		$where = array();
 		if ($condition->taskLevel != '')
@@ -43,25 +45,49 @@ class TaskSearch extends Common
 				't3.detail'				=>	'detail3',
 				't3.duty'				=>	'duty3',
 				't3.leader'				=>	'leader3',
-				'td.completeSituation'	=>	'complete',
-				'td.problemSuggestions'	=>	'problem',
-				'td.analysis'			=>	'analysis'
-			])->where($where)->select();
+				'GROUP_CONCAT(td.completeSituation SEPARATOR "；")'	=>	'complete',
+				'GROUP_CONCAT(td.problemSuggestions SEPARATOR "；")'=>	'problem',
+				'GROUP_CONCAT(td.analysis SEPARATOR "；")'			=>	'analysis'
+			])->where($where)->page($page, $listRow)->group('id')->select();
 
-		foreach ($list as $k => $v)
+		$total = model('Task')->alias('task')
+			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+            ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
+            ->join('TaskTasktype tt', 'task.id =tt.tId')->where($where)->group('task.id')->count();
+
+		foreach ($list as $k => $v)   
 		{
+			// 如果任务部门的Id是数字，查询出对应的部门名称
 			if (preg_match_all('/^\d*$/', $v['deptNo']))
 				$list[$k]['deptNo'] = model('OrgDept')->getName($v['deptNo']);
 			else 
-			{
+				// 如果不是数字，查询出关联的所有部门的填报情况，拼凑橙字符串显示
 				$list[$k]['deptNo'] = $v['deptNo'];
-				$tIds = model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $v['deptNo']))->column('deptNo');
+				// $tIds = model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $v['deptNo']))->column('deptNo');
+				// $userInput = model('TaskData')->where('tId', $v['id'])->where('deptNo', 'in', implode(',', $tIds))->group('deptNo')->order('tDate desc')->select();
+				// foreach ($userInput as $kk => $vv)
+				// {
+				// 	if ($vv['completeSituation']!= null && $vv['completeSituation'] != '')
+				// 		$list[$k]['complete'] .= $vv['completeSituation'] . '；';
+				// 	if ($vv['problemSuggestions']!= null && $vv['problemSuggestions'] != '')
+				// 		$list[$k]['problem'] .= $vv['problemSuggestions'] . '；';
+				// 	if ($vv['analysis']!= null && $vv['analysis'] != '')
+				// 		$list[$k]['analysis'] .= $vv['analysis'] . '；';
+				// }
 
-			}
-			
 			$typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
 			$list[$k]['taskType'] = implode(',', model('TaskType')->where('id', 'in', implode(',', $typeIds))->column('typeName'));
 		}
-		$this->success('', '', $list);
+
+		$result = array(
+			'list'		=>	$list,
+			'page'		=>	(int)$page,
+			'listRow'	=>	(int)$listRow,
+			'total'		=>	$total
+		);
+
+		$this->success('', '', $result);
 	}
 }
