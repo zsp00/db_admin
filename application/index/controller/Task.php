@@ -10,7 +10,7 @@ use app\common\model\TaskLog;
 
 class Task extends Common
 {
-    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = '', $needToDo = 'true')
+    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true')
     {
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
@@ -34,7 +34,7 @@ class Task extends Common
         if ($res){
             $flag = true;
         }else{
-            $map['task_data.deptNo'] =  $deptNo;
+            $map['deptNo'] =  $deptNo;
         }
 
         if($level !== '')      // 级别
@@ -43,8 +43,8 @@ class Task extends Common
             $map['typeId'] = $typeId;
         if ($ifStatus !== '')    // 是否提交
             $map['ifStatus'] = $ifStatus;
-        if ($dept !== '')      // 部门
-            $map['deptNo'] = $dept;
+        if ($dept !== [])      // 部门
+            $map['deptNo'] = $dept[1];
 
         $tDate = date('Ym');
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);

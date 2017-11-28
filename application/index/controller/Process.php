@@ -16,23 +16,23 @@ class Process extends Common
 
 		foreach ($compList as $k => $v)
 		{
-			$tmp = array(
-				'label'	=>	$v['COMP_NAME'],
-				'value'	=>	$v['COMP_NO']
+			$result[$v['COMP_NO']] = array(
+				'label'		=>	$v['COMP_NAME'],
+				'value'		=>	$v['COMP_NO'],
+				'children'	=>	array()
 			);
-			
 		}
 
 		foreach ($deptList as $k => $v)
 		{
-			$result[$v['COMP_NO']]['dept'][] = array(
-				'deptNo'	=>	$v['DEPT_NO'],
-				'deptName'	=>	$v['DEPT_NAME']
+			$result[$v['COMP_NO']]['children'][] = array(
+				'value'	=>	$v['DEPT_NO'],
+				'label'	=>	$v['DEPT_NAME']
 			);
 		}
 
 		if (!is_null($result))
-			$this->success('', '', $result);
+			$this->success('', '', array_values($result));
 		else
 			$this->error();
 	}
@@ -49,7 +49,7 @@ class Process extends Common
 
 		$insertProcess = array(
 			'name'			=>	trim($data['name']),
-			'deptNo'		=>	$data['deptValue'],
+			'deptNo'		=>	$data['deptValue'][1],
 			'level'			=>	count($data['process']),
 			'creator'		=>	$member['EMP_NO'],
 			'lastModifier'	=>	$member['EMP_NO']
@@ -182,7 +182,7 @@ class Process extends Common
 
 		$updateProcess = array(
 			'name'			=>	trim($data['name']),
-			'deptNo'		=>	$data['deptValue'],
+			'deptNo'		=>	$data['deptValue'][1],
 			'level'			=>	count($data['process']),
 			'lastModifier'	=>	$member['EMP_NO']
 		);

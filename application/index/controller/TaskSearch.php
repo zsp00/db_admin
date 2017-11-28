@@ -5,16 +5,14 @@ class TaskSearch extends Common
 {
 	public function getTaskList($condition, $page, $listRow)
 	{
-		// dump(request()->param());
-		// exit;
 		$condition = json_decode($condition);
 		$where = array();
 		if ($condition->taskLevel != '')
 			$where['task.level'] = $condition->taskLevel;
 		if ($condition->taskType != '')
 			$where['tt.typeId'] = $condition->taskType;
-		if ($condition->deptValue != '')
-			$where['task.deptNo'] = $condition->deptValue;
+		if ($condition->deptValue != [])
+			$where['task.deptNo'] = $condition->deptValue[1];
 		if ($condition->timeLimit != '')
 			$where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
 		if ($condition->leaderFirst != '')
