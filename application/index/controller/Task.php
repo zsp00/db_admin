@@ -85,7 +85,7 @@ class Task extends Common
         $result = $Task->getInfo($id,$tdDeptNo);
         if($result){
             $OrgDept = new OrgDept();
-            $result['deptName'] = $OrgDept->getNameList($result['deptNo']);
+            $result['deptName'] = $OrgDept->getNameList($tdDeptNo);
             $result['timeLimit'] = substr_replace($result['timeLimit'], '年', 4, 0);
             $result['releaseTime'] = date('Y', $result['releaseTime']);
             $result['stepsNum'] = Model('Process')->where('id', $result['pId'])->value('level');
