@@ -99,7 +99,7 @@ class TaskManage extends Common
             $where['typeId'] = $typeId;
         }
         if($deptNo !== ''){
-            $where['t.deptNo'] = $deptNo;
+            $where['t.deptNo'] = $deptNo[1];
         }
 
         if($taskdataStatus!== ''){
