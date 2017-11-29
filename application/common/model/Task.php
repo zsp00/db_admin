@@ -183,14 +183,28 @@ class Task extends Model
 
     public function getInfo($id,$tdDeptNo)
     {
-        $info = $this->where(['id'=>$id])->find();
+        $info = Model('Task')
+            ->alias('task')
+            ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+            ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+            ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+            ->where(['task.id'=>$id])
+            ->field([
+                'task.*',
+                't1.title'				=>	'title1',
+                't1.detail'				=>	'detail1',
+                't2.title'				=>	'title2',
+                't2.detail'				=>	'detail2',
+                't3.detail'				=>	'detail3',
+                't3.duty'				=>	'duty3',
+            ])
+            ->find();
         if($info) {
-            $task = Model('Task')->where(['id'=>$id])->find();
             $TaskData = new TaskData();
             $taskDataList = $TaskData->where(['tId'=>$id,'deptNo'=>$tdDeptNo])->order(['tDate desc'])->select();
             foreach($taskDataList as $k=>$v)
             {
-                $taskDataList[$k]['taskSelect'] = $task['status'] == '1' ? false : true;
+                $taskDataList[$k]['taskSelect'] = $info['status'] == '1' ? false : true;
                 $taskDataList[$k]['commitAll'] = model('ProcessData')->where(['pId'=>$info['pId'], 'levelNo'=>$v['currentLevel']])->value('commitAll');
                 $steps = array();
                 // 获取流程步骤，拼凑页面步骤条数据
