@@ -29,7 +29,6 @@ class TaskSearch extends Common
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
 			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
             ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
-            ->join('TaskTasktype tt', 'task.id =tt.tId')
 			->field([
 				'task.*',
 				't1.leader'				=>	'leader1',
@@ -63,17 +62,6 @@ class TaskSearch extends Common
 			else 
 				// 如果不是数字，查询出关联的所有部门的填报情况，拼凑橙字符串显示
 				$list[$k]['deptNo'] = $v['deptNo'];
-				// $tIds = model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $v['deptNo']))->column('deptNo');
-				// $userInput = model('TaskData')->where('tId', $v['id'])->where('deptNo', 'in', implode(',', $tIds))->group('deptNo')->order('tDate desc')->select();
-				// foreach ($userInput as $kk => $vv)
-				// {
-				// 	if ($vv['completeSituation']!= null && $vv['completeSituation'] != '')
-				// 		$list[$k]['complete'] .= $vv['completeSituation'] . '；';
-				// 	if ($vv['problemSuggestions']!= null && $vv['problemSuggestions'] != '')
-				// 		$list[$k]['problem'] .= $vv['problemSuggestions'] . '；';
-				// 	if ($vv['analysis']!= null && $vv['analysis'] != '')
-				// 		$list[$k]['analysis'] .= $vv['analysis'] . '；';
-				// }
 
 			$typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
 			$list[$k]['taskType'] = implode(',', model('TaskType')->where('id', 'in', implode(',', $typeIds))->column('typeName'));
