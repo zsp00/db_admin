@@ -16,7 +16,7 @@ function checkLogin(){
     $cM = cookie('member');
     if(cookie('logintype') == 'protal'){
 
-        $token = cookie('token_'.\think\Config::get('ldap.appNo'));
+        $token = cookie('token_'.\think\Config::get('uams.appNo'));
         $t_time = cookie('t_time');
         $empno = cookie('empno');
         $personid = cookie('personid');

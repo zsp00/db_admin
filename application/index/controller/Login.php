@@ -6,9 +6,47 @@ use app\common\model\UserEmp;
 use Bmzy\Uams\User;
 use think\Config;
 use think\Controller;
+use think\Request;
+use think\Cookie;
+
 
 class Login extends Controller
 {
+    public function __construct(Request $request)
+    {
+        parent::__construct($request);
+        $token = Cookie::get('token_'.Config::get('uams.appNo'),'');
+        $t_time = Cookie::get('t_time','');
+        $empno = Cookie::get('empno','');
+        $personid = Cookie::get('personid','');
+        if($token != '' && $empno != '' && $t_time != '' && $personid != ''){
+            $this->autoLogin($token,$empno,$t_time);
+        }
+    }
+    /**
+     * @param $token
+     * @param $empno
+     * @param $t_time
+     * 自动登陆
+     */
+    public function autoLogin($token,$empno,$t_time){
+        if(md5($empno.Config::get('uams.appKey').$t_time) == $token){
+            //自动登陆
+            $info = model('UserEmp')->exists($empno,'EMP_NO');
+            if($info){
+                $result = model('UserEmp')->login($info);
+                if(!$result){
+                    $this->error(model('UserEmp')->getError());
+                }
+            }else{
+                $this->index();
+            }
+
+            //登录成功调用行为日志的方法
+        }else{
+            $this->index();
+        }
+    }
     public function index($username = '', $password = '', $remember = false)
     {
         $vUser = new \app\index\validate\User();
