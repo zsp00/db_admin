@@ -3,10 +3,12 @@ namespace app\index\controller;
 
 class TaskSearch extends Common
 {
-	public function getTaskList($condition, $page, $listRow)
+	public function getTaskList($condition, $page = '1', $listRow = '10')
 	{
 		$condition = json_decode($condition);
-		$where = array();
+		$where = [
+            'content'   =>  ['like','%'.$condition->keyword.'%']
+        ];
 		if ($condition->taskLevel != '')
 			$where['task.level'] = $condition->taskLevel;
 		if ($condition->taskType != '')
@@ -16,20 +18,22 @@ class TaskSearch extends Common
 		if ($condition->timeLimit != '')
 			$where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
 		if ($condition->leaderFirst != '')
-			$where['t1.leader'] = ['in', implode(',', model('UserEmp')->where('EMP_NAME', $condition->leaderFirst)->column('EMP_NO'))];
+			//$where['t1.leader'] = ['in', implode(',', model('UserEmp')->where('EMP_NAME', $condition->leaderFirst)->column('EMP_NO'))];
+			$where['t1.leader'] = $condition->leaderFirst;
 		if ($condition->leaderSecond != '')
-			$where['t2.leader'] = ['in', implode(',', model('UserEmp')->where('EMP_NAME', $condition->leaderSecond)->column('EMP_NO'))];
+            $where['t2.leader'] = $condition->leaderSecond;
 		if ($condition->leaderThird != '')
-			$where['t3.leader'] = ['in', implode(',', model('UserEmp')->where('EMP_NAME', $condition->leaderThird)->column('EMP_NO'))];
-
+            $where['t3.leader'] = $condition->leaderThird;
+		if ($condition->taskDataStauts != '')
+            $where['td.status'] = $condition->taskDataStauts;
 		$tDate = date('Ym');
-
 		$list = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
 			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
             ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
-			->field([
+            ->join('TaskTasktype tt', 'task.id =tt.tId')
+            ->field([
 				'task.*',
 				't1.leader'				=>	'leader1',
 				't1.title'				=>	'title1',
@@ -46,7 +50,6 @@ class TaskSearch extends Common
 				'GROUP_CONCAT(td.problemSuggestions SEPARATOR "；")'=>	'problem',
 				'GROUP_CONCAT(td.analysis SEPARATOR "；")'			=>	'analysis'
 			])->where($where)->page($page, $listRow)->group('id')->select();
-
 		$total = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')

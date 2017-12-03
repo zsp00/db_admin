@@ -118,6 +118,9 @@ class TaskManage extends Common
             ->group('t.id')
             ->field(['t.*','tt.typeId','tt.tId','td.status'=>'currMonthStatus'])
             ->select();
+        //统计需要督办的数量
+        $allTotal = count(Model('Task')->where(['status' => ['in','1,2']])->select());
+        $supNum = count(Model('Task')->alias('t')->join('TaskData td', 't.id=td.tid and td.tDate=' . $tDate, 'left')->where(['td.status'=>'1'])->select());
         foreach($result as $k=>$v){
             $rule = '/^\d*$/';
             $ruleResult = preg_match($rule, $v['deptNo'], $matches);
@@ -126,7 +129,6 @@ class TaskManage extends Common
             }else{
                 $result[$k]['deptNo'] = $v['deptNo'];
             }
-//            $result[$k]['pId'] = Model('Process')->where(['id' => $v['pId']])->value('name');
             $result[$k]['timeLimit'] = substr($v['timeLimit'],0,4).'年'.substr($v['timeLimit'],4,6).'月';
             $result[$k]['taskDataValue'] = Model('TaskData')->getTaskDataValue($v['id']);
             $typeNum = Model('TaskTasktype')->where(['tId'=> $v['id']])->select();
@@ -135,6 +137,8 @@ class TaskManage extends Common
             }
             $result[$k]['taskType'] = implode(',',$typeNum);
         }
+//        $result['allTotal'] = $allTotal;
+//        $result['supNum'] = $supNum;
         $this->success($result);
 
     }
