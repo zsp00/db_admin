@@ -157,6 +157,8 @@ class Task extends Model
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', $v['typeId']]])->column('typeName'));
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
+                if (count($participateLevel) <= 0)
+                    return false;
                 $list[$k]['getStepIds'] = $participateLevel['0'];
                 $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
 

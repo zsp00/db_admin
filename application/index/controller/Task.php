@@ -48,10 +48,10 @@ class Task extends Common
 
         $tDate = date('Ym');
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
-        //获取权限
-//        $Identity = new Identity();
-//        $identitys = $Identity->getIdentity($userInfo['EMP_NO']);
-//        $result['identitys'] = $identitys;
+
+        if (!$result)
+            $this->error('当前用户无权查看所有任务');
+
         $result['date'] = $pcInfo;
         $result['flag'] = $flag;
         $this->success($result);
@@ -439,9 +439,9 @@ class Task extends Common
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
 
         $list = model('Task')->alias('task')
-            ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
             ->where(['task.status'=>['in', '1,2']])
             ->where(function ($query) use ($deptNo, $empNo) {
                 $query->where([
@@ -482,40 +482,23 @@ class Task extends Common
      * 判断第三级用户
      * @return [type] [description]
      */
-    public function checkCount()
+    public function checkCount($countDoing)
     {
         $tDate = $tDate = date('Ym');
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
 
-        $countDoing = model('Task')->alias('task')
-            ->join('task_data', 'task.id = task_data.tId and task_data.tDate='.$tDate)
-            ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->join('process_data', 'task_data.currentLevel=process_data.levelNo', 'left')
-            ->where(['task.status'=>['in', '1,2']])
-            ->where(function ($query) use ($deptNo, $empNo) {
-                $query->where([
-                    'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
-                ])->whereOr([
-                    'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
-                ]);
-            })->where(function ($query) use ($empNo) {
-                $query->where([
-                    'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
-                ]);
-            })->group('task.id')->count();
-
         $countAll = model('Task')->alias('task')
-            ->join('task_data', 'task.id = task_data.tId')
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->where(['task.status'=>['in', '1,2']])->group('task.id')->count();
+            ->where(['task.status'=>['in', '1,2']])->group('task_data.id')->count();
 
         if ($countDoing == $countAll)
             $this->success();
         elseif ($countDoing > $countAll)
             $this->error('系统出现故障，请联系管理员！');
         else
-            $this->error('还有任务没有被提交，暂时不能执行全部提交！');
+            $this->error('尚有任务未填报，暂不能全部提交！');
     }
 }
