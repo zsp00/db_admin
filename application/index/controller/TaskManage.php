@@ -102,7 +102,7 @@ class TaskManage extends Common
             $where['t.deptNo'] = $deptNo[1];
         }
 
-        if($taskdataStatus!== ''){
+        if($taskdataStatus !== ''){
             if ($taskdataStatus == 'true')
                 $where['td.status'] = 1;
             else
@@ -120,7 +120,7 @@ class TaskManage extends Common
             ->select();
         //统计需要督办的数量
         $allTotal = count(Model('Task')->where(['status' => ['in','1,2']])->select());
-        $supNum = count(Model('Task')->alias('t')->join('TaskData td', 't.id=td.tid and td.tDate=' . $tDate, 'left')->where(['td.status'=>'1'])->select());
+        $supNum = count(Model('Task')->alias('t')->join('TaskData td', 't.id=td.tid and td.tDate=' . $tDate, 'left')->where(['td.status'=>'1'])->group('td.tId')->select());
         foreach($result as $k=>$v){
             $rule = '/^\d*$/';
             $ruleResult = preg_match($rule, $v['deptNo'], $matches);
@@ -137,8 +137,9 @@ class TaskManage extends Common
             }
             $result[$k]['taskType'] = implode(',',$typeNum);
         }
-//        $result['allTotal'] = $allTotal;
-//        $result['supNum'] = $supNum;
+        $result['list'] = $result;
+        $result['number']['allTotal'] = $allTotal;
+        $result['number']['supNum'] = $supNum;
         $this->success($result);
 
     }
@@ -167,6 +168,8 @@ class TaskManage extends Common
         if(empty($id)){
             $this->error('请选择督办任务！');
         }
+        $tDate = date('Ym',time());
+        $previousMonth = date('Ym',strtotime("-1 month"));
         if(is_array($id)){
            foreach($id as $k=>$v){
                if($v['taskDataValue'] == true){
@@ -182,7 +185,6 @@ class TaskManage extends Common
                }else{
                    $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
                }
-               $tDate = date('Ym',time());
                foreach($deptNo as $k2 => $v2){
                    $taskDateInfo = [
                        'tId' => $v['id'],
@@ -192,6 +194,13 @@ class TaskManage extends Common
                        'nextLevel' => 2,
                        'tDate' => $tDate,
                    ];
+                   //查看上个月有没有督办这个任务
+                   $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$v2,'tId'=>$v['id'],'status'=>'0'])->find();
+                   if($taskDataPreMonth){
+                       $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
+                       $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
+                       $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
+                   }
                    $SupRecord = [
                        'srUser' => $userInfo['EMP_NO'],
                        'tId' => $id,
@@ -213,7 +222,6 @@ class TaskManage extends Common
             }else{
                 $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
             }
-            $tDate = date('Ym',time());
             foreach($deptNo as $k => $v){
                 $taskDateInfo = [
                     'tId' => $id,
@@ -223,6 +231,13 @@ class TaskManage extends Common
                     'nextLevel' => 2,
                     'tDate' => $tDate,
                 ];
+                //查看上个月有没有督办这个任务
+                $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$v,'tId'=>$id,'status'=>'0'])->find();
+                if($taskDataPreMonth){
+                    $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
+                    $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
+                    $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
+                }
                 $SupRecord = [
                     'srUser' => $userInfo['EMP_NO'],
                     'tId' => $id,
