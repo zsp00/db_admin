@@ -25,7 +25,12 @@ class TaskSearch extends Common
 		if ($condition->leaderThird != '')
             $where['t3.leader'] = $condition->leaderThird;
 		if ($condition->taskDataStauts != '')
-            $where['td.status'] = $condition->taskDataStauts;
+		{
+			if ($condition->taskDataStauts == '3')
+            	$where['task.status'] = '3';
+            else 
+            	$where['task.status'] = ['<>', '3'];
+		}
 		$tDate = date('Ym');
 		$list = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
