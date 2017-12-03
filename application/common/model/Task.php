@@ -82,6 +82,7 @@ class Task extends Model
                     'task_data.currentLevel'    =>  'taskDataStatus',
                     'task_data.status'          =>  'currMonthStatus',
                     'process_data.commitAll'    =>  'commitAll',
+                    'process_data.confirmAll'    =>  'confirmAll',
                     'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
                 ]);
             $list = $model->page($page,$listRow)->group('task_data.id')->select();

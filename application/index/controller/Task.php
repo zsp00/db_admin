@@ -283,29 +283,53 @@ class Task extends Common
     /**
      * 确认任务
      */
-    public function confirm($id,$taskSelect=false)
+    public function confirm($data,$taskSelect=false)
     {
-        //获取用户的权限
-        $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-        $TaskDataModel = new TaskData();
-        $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
-        if(!$taskDataInfo){
-            $this->error('该条记录未找到');
-        }
-        if($taskSelect){
-            Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3', 'completeTime'=>time()]);
-        }
-        //本月的任务确认task_data表
-        $updateStatus = $TaskDataModel->where(['id'=>$id])->update(['status' => 0]);
+        if(is_array($data)){
+            //获取用户的权限
+            $userInfo = getUserInfo();
+            $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+            $TaskDataModel = new TaskData();
+            foreach($data as $k=>$v){
+                $taskDataInfo = $TaskDataModel->where(['tId'=>$v['id']])->find();
+                if($taskSelect){
+                    Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3', 'completeTime'=>time()]);
+                }
+                //本月的任务确认task_data表
+                $updateStatus = $TaskDataModel->where(['tId'=>$v['id'],'status'=>'1'])->update(['status' => 0]);
 
-        if ($updateStatus === false) {
-            $this->error($TaskDataModel->getError());
+                if ($updateStatus === false) {
+                    $this->error($TaskDataModel->getError());
+                }else{
+                    //添加确认日志
+                    $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'confirm',$userInfo['EMP_NO'],$deptNo);
+                }
+            }
         }else{
-            //添加确认日志
-            $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'confirm',$userInfo['EMP_NO'],$deptNo);
-            $this->success('确认成功!');
+            //获取用户的权限
+            $userInfo = getUserInfo();
+            $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+            $TaskDataModel = new TaskData();
+
+            $taskDataInfo = $TaskDataModel->where(['id'=>$data])->find();
+            if(!$taskDataInfo){
+                $this->error('该条记录未找到');
+            }
+            if($taskSelect){
+                Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3', 'completeTime'=>time()]);
+            }
+            //本月的任务确认task_data表
+            $updateStatus = $TaskDataModel->where(['id'=>$data])->update(['status' => 0]);
+
+            if ($updateStatus === false) {
+                $this->error($TaskDataModel->getError());
+            }else{
+                //添加确认日志
+                $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'confirm',$userInfo['EMP_NO'],$deptNo);
+            }
         }
+
+        $this->success('确认成功!');
     }
     /*
      * 获取日志
