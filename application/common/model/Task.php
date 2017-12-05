@@ -345,4 +345,40 @@ class Task extends Model
         }
         return $msg;
     }
+
+    public function getTaskList($where, $all = false, $page = '1', $listRow = '10')
+    {
+        $tDate = date('Ym');
+        $model = model('Task')->alias('task')
+            ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+            ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+            ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+            ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
+            ->join('TaskTasktype tt', 'task.id =tt.tId')
+            ->join('RelevantDepartments rd', 'td.deptNo=rd.deptNo', 'left')
+            ->field([
+                'task.*',
+                't1.leader'             =>  'leader1',
+                't1.title'              =>  'title1',
+                't1.detail'             =>  'detail1',
+                't2.leader'             =>  'leader2',
+                't2.title'              =>  'title2',
+                't2.detail'             =>  'detail2',
+                't2.deptNo'             =>  'deptNo2',
+                't3.serialNum'          =>  'serialNum',
+                't3.detail'             =>  'detail3',
+                't3.duty'               =>  'duty3',
+                't3.leader'             =>  'leader3',
+                '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.completeSituation SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.completeSituation SEPARATOR "；") END)'    =>  'complete',
+                '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.problemSuggestions SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.problemSuggestions SEPARATOR "；") END)'  =>  'problem',
+                '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.analysis SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.analysis SEPARATOR "；") END)'  =>  'analysis'
+            ])->where($where);
+
+        if ($all)
+            $list = $model->group('id')->select();
+        else
+            $list = $model->page($page, $listRow)->group('id')->select();
+
+        return $list;
+    }
 }

@@ -6,61 +6,37 @@ class TaskSearch extends Common
 	public function getTaskList($condition, $page = '1', $listRow = '10')
 	{
 		$condition = json_decode($condition);
-		$where = [
+        $where = [
             'content'   =>  ['like','%'.$condition->keyword.'%']
         ];
-		if ($condition->taskLevel != '')
-			$where['task.level'] = $condition->taskLevel;
-		if ($condition->taskType != '')
-			$where['tt.typeId'] = $condition->taskType;
-		if ($condition->deptValue != [])
-			$where['task.deptNo'] = $condition->deptValue[1];
-		if ($condition->timeLimit != '')
-			$where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
-		if ($condition->leaderFirst != '')
-			//$where['t1.leader'] = ['in', implode(',', model('UserEmp')->where('EMP_NAME', $condition->leaderFirst)->column('EMP_NO'))];
-			$where['t1.leader'] = $condition->leaderFirst;
-		if ($condition->leaderSecond != '')
+        if ($condition->taskLevel != '')
+            $where['task.level'] = $condition->taskLevel;
+        if ($condition->taskType != '')
+            $where['tt.typeId'] = $condition->taskType;
+        if ($condition->deptValue != [])
+            $where['task.deptNo'] = $condition->deptValue[1];
+        if ($condition->timeLimit != '')
+            $where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
+        if ($condition->leaderFirst != '')
+            $where['t1.leader'] = $condition->leaderFirst;
+        if ($condition->leaderSecond != '')
             $where['t2.leader'] = $condition->leaderSecond;
-		if ($condition->leaderThird != '')
+        if ($condition->leaderThird != '')
             $where['t3.leader'] = $condition->leaderThird;
-		if ($condition->taskDataStauts != '')
-		{
-			if ($condition->taskDataStauts == '3')
-            	$where['task.status'] = '3';
+        if ($condition->taskDataStauts != '')
+        {
+            if ($condition->taskDataStauts == '3')
+                $where['task.status'] = '3';
             else 
-            	$where['task.status'] = ['<>', '3'];
-		}
-		$tDate = date('Ym');
-		$list = model('Task')->alias('task')
-			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
-			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
-			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-            ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
-            ->join('TaskTasktype tt', 'task.id =tt.tId')
-            ->field([
-				'task.*',
-				't1.leader'				=>	'leader1',
-				't1.title'				=>	'title1',
-				't1.detail'				=>	'detail1',
-				't2.leader'				=>	'leader2',
-				't2.title'				=>	'title2',
-				't2.detail'				=>	'detail2',
-				't2.deptNo'				=>	'deptNo2',
-				't3.serialNum'			=>	'serialNum',
-				't3.detail'				=>	'detail3',
-				't3.duty'				=>	'duty3',
-				't3.leader'				=>	'leader3',
-				'GROUP_CONCAT(td.completeSituation SEPARATOR "；")'	=>	'complete',
-				'GROUP_CONCAT(td.problemSuggestions SEPARATOR "；")'=>	'problem',
-				'GROUP_CONCAT(td.analysis SEPARATOR "；")'			=>	'analysis'
-			])->where($where)->page($page, $listRow)->group('id')->select();
+                $where['task.status'] = ['<>', '3'];
+        }
+		$list = model('Task')->getTaskList($where, false, $page, $listRow);
 		$total = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
 			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
             ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
-            ->join('TaskTasktype tt', 'task.id =tt.tId')->where($where)->group('task.id')->count();
+            ->join('TaskTasktype tt', 'task.id=tt.tId')->where($where)->group('task.id')->count();
 
 		foreach ($list as $k => $v)   
 		{
@@ -83,5 +59,67 @@ class TaskSearch extends Common
 		);
 
 		$this->success('', '', $result);
+	}
+
+	public function exportList($condition)
+	{
+		$condition = json_decode($condition);
+        $where = [
+            'content'   =>  ['like','%'.$condition->keyword.'%']
+        ];
+        if ($condition->taskLevel != '')
+            $where['task.level'] = $condition->taskLevel;
+        if ($condition->taskType != '')
+            $where['tt.typeId'] = $condition->taskType;
+        if ($condition->deptValue != [])
+            $where['task.deptNo'] = $condition->deptValue[1];
+        if ($condition->timeLimit != '')
+            $where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
+        if ($condition->leaderFirst != '')
+            $where['t1.leader'] = $condition->leaderFirst;
+        if ($condition->leaderSecond != '')
+            $where['t2.leader'] = $condition->leaderSecond;
+        if ($condition->leaderThird != '')
+            $where['t3.leader'] = $condition->leaderThird;
+        if ($condition->taskDataStauts != '')
+        {
+            if ($condition->taskDataStauts == '3')
+                $where['task.status'] = '3';
+            else 
+                $where['task.status'] = ['<>', '3'];
+        }
+		$list = model('Task')->getTaskList($condition, true);
+
+		try 
+    	{
+	    	//导出Excel
+	    	$objPHPExcel = new \PHPExcel();
+	    	//应用第一个sheet页
+	    	$objPHPExcel->setActiveSheetIndex(0);
+	    	
+	    	
+	    	
+	    	//保存文件
+			// Redirect output to a client’s web browser (Excel2007)
+			header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+			header('Content-Disposition: attachment;filename="任务记录.xlsx"');
+			header('Cache-Control: max-age=0');
+			// If you're serving to IE 9, then the following may be needed
+			header('Cache-Control: max-age=1');
+			
+			// If you're serving to IE over SSL, then the following may be needed
+			header ('Expires: Mon, 26 Jul 1997 05:00:00 GMT'); // Date in the past
+			header ('Last-Modified: '.gmdate('D, d M Y H:i:s').' GMT'); // always modified
+			header ('Cache-Control: cache, must-revalidate'); // HTTP/1.1
+			header ('Pragma: public'); // HTTP/1.0
+			
+			$objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+			$objWriter->save('php://output');
+			exit;
+    	}
+    	catch (\PHPExcel_Exception $ex)
+    	{
+    		return $ex->getMessage();
+    	}
 	}
 }

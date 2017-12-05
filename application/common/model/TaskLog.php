@@ -17,6 +17,18 @@ class TaskLog extends Model
      * 添加一条日志
      */
     public function addLog($tId,$tDId,$type,$empNo,$deptNo,$newData = [], $oldData = []){
+        if (count($newData) > 0)
+        {
+            $tempArr = 0;
+            foreach ($newData as $k => $v)
+            {
+                if ($oldData[$k] != $v)
+                    $tempArr++;
+            }
+            if ($tempArr == 0)
+                return true;
+        }
+        
         $data = [
             'tId'   =>  $tId,
             'tDId'  =>  $tDId,

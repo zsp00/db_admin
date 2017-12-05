@@ -98,7 +98,7 @@ class Task extends Common
     /*
      * 更新
      */
-    public function edit($id, $completeSituation, $problemSuggestions, $analysis, $taskSelect=false){
+    public function edit($id, $completeSituation='', $problemSuggestions='', $analysis='', $taskSelect=false){
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo){
@@ -151,9 +151,9 @@ class Task extends Common
         if ($updateDataStatus === false) {
             $this->error($TaskDataModel->getError());
         }
-        if($updateDataStatus === 0 && $taskUpdate === 0){
-            $this->error('您没做任何修改！');
-        }
+        // if($updateDataStatus === 0 && $taskUpdate === 0){
+        //     $this->error('您没做任何修改！');
+        // }
         $TaskLogModel = new TaskLog();
         $result = $TaskLogModel->addLog($taskInfo['id'],$taskDataInfo['id'],'edit',$userInfo['EMP_NO'],$deptNo,$update,$taskDataInfo->toArray());
 
