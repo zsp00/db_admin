@@ -118,7 +118,7 @@ create table d_tasklist_authority
 (
   id                   int                       auto_increment primary key,
   type                 enum('dept','person','tag')       not null,
-  value                varchar(10)               not null
+  value                varchar(100)              not null
 );
 
 
@@ -127,7 +127,7 @@ create table d_task_level_first
 (
   id                   int                       auto_increment primary key,
   serialNum            int                       not null            comment '序号',
-  leader               varchar(10)               not null            comment '牵头领导',
+  leader               varchar(100)              not null            comment '牵头领导',
   title                varchar(300)              not null            comment '任务标题',
   detail               varchar(500)              not null            comment '详细说明'
 );
@@ -138,7 +138,7 @@ create table d_task_level_second
 (
   id                   int                       auto_increment primary key,
   serialNum            int                       not null            comment '序号',
-  leader               varchar(10)               not null            comment '责任领导',
+  leader               varchar(100)              not null            comment '责任领导',
   title                varchar(300)              not null            comment '任务标题',
   detail               varchar(500)              not null            comment '详细说明',
   deptNo               varchar(80)               not null            comment '责任部室',

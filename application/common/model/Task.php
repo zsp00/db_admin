@@ -349,7 +349,7 @@ class Task extends Model
     public function getTaskList($where, $all = false, $page = '1', $listRow = '10')
     {
         $tDate = date('Ym');
-        $model = model('Task')->alias('task')
+        $model = $this->alias('task')
             ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
             ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
             ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
