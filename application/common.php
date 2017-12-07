@@ -125,3 +125,14 @@ function getAllName($type,$id,$isAll=false)
             return '未知';
     }
 }
+
+
+//生成xlsx文件并存入当前文件目录
+function saveExcelToLocalFile($objWriter, $fileName)
+{
+    // make sure you have permission to write to directory
+    $filePath = ROOT_PATH . 'public' . DS . 'excel' . DS . $fileName . '.xlsx'; 
+    // $filePath = './excel' . DS . $fileName . '.xlsx'; 
+    $objWriter->save($filePath);
+    return $filePath;  
+}
