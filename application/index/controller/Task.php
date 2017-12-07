@@ -30,7 +30,7 @@ class Task extends Common
 
         // 查询当前用户有没有查看所有任务列表的权限
         $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
-        $flag = false;       // 是否能查看所有任务列表的标识
+        $flag = false;       // 是否能查看所有任务列表的标识，还是只能查看本部门的任务
         if ($res){
             $flag = true;
         }else{
@@ -50,7 +50,7 @@ class Task extends Common
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
 
         if (!$result)
-            $this->error('当前用户无权查看所有任务');
+            $this->error('暂无任务');
 
         $result['date'] = $pcInfo;
         $result['flag'] = $flag;
@@ -539,10 +539,230 @@ class Task extends Common
             $this->error('尚有任务未填报，暂不能全部提交！');
     }
 
+<<<<<<< HEAD
     //测试微信的推送
     public function ceshi()
     {
         Model('Task')->testPush();
     }
 
+=======
+    // 导出任务填报列表
+    public function exportFillinList($keyword = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true')
+    {
+        $userInfo = getUserInfo();
+        $empNo = $userInfo['EMP_NO'];
+        $OrgDept = new OrgDept();
+        $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
+
+        // 检索条件
+        $where = [
+            'task.content'   =>  ['like','%'.$keyword.'%'],
+            'task.status'    =>  ['in', '1,2'],
+        ];
+
+        // 查询当前用户有没有查看所有任务列表的权限
+        $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
+        $flag = false;       // 是否能查看所有任务列表的标识
+        if ($res){
+            $flag = true;
+        }else{
+            $where['task_data.deptNo'] =  $deptNo;
+        }
+
+        if ($typeId !== '')    // 分类
+            $where['task_tasktype.typeId'] = $typeId;
+        if ($dept !== [])      // 部门
+            $where['task_data.deptNo'] = $dept[1];
+
+        $tDate = date('Ym');
+
+        if ($needToDo == 'true')
+        {
+            $model = model('Task')->alias('task')
+                ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+                ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+                ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
+                ->where($where)
+                ->where(function ($query) use ($deptNo, $empNo) {
+                    $query->where([
+                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                    ])->whereOr([
+                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                    ]);
+                })->where(function ($query) use ($empNo) {
+                    $query->where([
+                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                    ]);
+                })->field([
+                    'task.*',
+                    't1.leader'             =>  'leader1',
+                    't1.title'              =>  'title1',
+                    't1.detail'             =>  'detail1',
+                    't2.leader'             =>  'leader2',
+                    't2.title'              =>  'title2',
+                    't2.detail'             =>  'detail2',
+                    't2.deptNo'             =>  'deptNo2',
+                    't3.serialNum'          =>  'serialNum',
+                    't3.detail'             =>  'detail3',
+                    't3.duty'               =>  'duty3',
+                    't3.leader'             =>  'leader3',
+                    'task_data.deptNo'      =>  'tdDeptNo',
+                    'task_data.completeSituation'   =>  'complete',
+                    'task_data.problemSuggestions'  =>  'problem',
+                    'task_data.analysis'            =>  'analysis',
+                    'task_data.currentLevel'    =>  'taskDataStatus',
+                    'task_data.status'          =>  'currMonthStatus',
+                    'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
+                ]);
+            $list = $model->group('task_data.id')->select();
+        }
+        else 
+        {
+            $model = model('Task')->alias('task')
+                ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+                ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+                ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->where($where)
+                ->field([
+                    'task.*',
+                    't1.leader'             =>  'leader1',
+                    't1.title'              =>  'title1',
+                    't1.detail'             =>  'detail1',
+                    't2.leader'             =>  'leader2',
+                    't2.title'              =>  'title2',
+                    't2.detail'             =>  'detail2',
+                    't2.deptNo'             =>  'deptNo2',
+                    't3.serialNum'          =>  'serialNum',
+                    't3.detail'             =>  'detail3',
+                    't3.duty'               =>  'duty3',
+                    't3.leader'             =>  'leader3',
+                    'task_data.deptNo'      =>  'tdDeptNo',
+                    'task_data.completeSituation'  =>  'complete',
+                    'task_data.problemSuggestions' =>  'problem',
+                    'task_data.analysis'           =>  'analysis',
+                    'task_data.currentLevel'    =>  'taskDataStatus',
+                    'task_data.status'          =>  'currMonthStatus',
+                    'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
+                ]);
+            $list = $model->group('task_data.id')->order('serialNum, id')->select();
+        }
+
+        $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
+        if($list)
+        {
+            $OrgDept = new OrgDept();
+            foreach($list as $k=>$v)
+            {
+                $list[$k]['deptNo'] = $OrgDept->where(['DEPT_NO'=>$v['tdDeptNo']])->value('DEPT_NAME');
+                $taskList[] = $list[$k];
+            }
+            if($ifStatus != ''){
+                foreach($taskList as $k2=>$v2){
+                    if($ifStatus != $v2['getTaskStatusMsg']){
+                        unset($taskList[$k2]);
+                    }
+                }
+            }
+        }
+
+        $count = count($taskList);
+        try 
+        {
+            //导出Excel
+            $objPHPExcel = new \PHPExcel();
+            //应用第一个sheet页
+            $objPHPExcel->setActiveSheetIndex(0);
+            $objActSheet = $objPHPExcel->getActiveSheet();
+            
+            // 写入数据（表头）
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(0, 1, '《北京市地铁运营有限公司“十三五”发展规划》任务分解及年度实施计划');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(0, 2, '序号');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(1, 2, '一级目标任务（目标）');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(3, 2, '牵头领导');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(4, 2, '二级目标任务（任务）');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(6, 2, '责任领导');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(7, 2, '责任部室');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(8, 2, '三级目标任务（举措）');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(10, 2, '责任领导');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(11, 2, '责任部室、二级单位目标任务');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(13, 2, '年度实施计划');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(13, 3, '2017年');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(14, 3, '完成情况');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(15, 3, '问题建议');
+            $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(16, 3, '原因分析');
+
+            // 定义几个合并单元格要用到的变量
+            $serialNum = $title1 = $title2 = $detail2 = $detail3 = $duty3  = $duty = '';
+            $serialNumIndex = $title1Index = $title2Index = $detail2Index = $detail3Index = $duty3Index = $dutyIndex = 0;
+            $fileds = array('serialNum' => 0, 'title1' => 1, 'detail1' => 2, 'leader1' => 3, 'title2' => 4, 'detail2' => 5, 'leader2' => 6, 'deptNo2' => 7, 'detail3' => 8, 'duty3' => 9, 'leader3' => 10, 'duty' => 12, 'content' => 13, 'complete' => 14, 'problem' => 15, 'analysis' => 16);
+
+            foreach ($taskList as $k => $v)
+            {
+                foreach ($fileds as $kk => $vv)
+                    $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow($vv, 4 + $k, $v[$kk]);
+                $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(11, 4 + $k, preg_match_all('/^\d*$/', $v['deptNo']) ? model('OrgDept')->getName($v['deptNo']) : $v['deptNo']);
+            }
+
+            // 合并单元格（表头）
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(0, 1, 16, 1);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(0, 2, 0, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(1, 2, 2, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(3, 2, 3, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(4, 2, 5, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(6, 2, 6, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(7, 2, 7, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(8, 2, 9, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(10, 2, 10, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(11, 2, 12, 3);
+            $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(13, 2, 16, 2);
+            
+            // 修改样式
+            $objActSheet->getColumnDimension('C')->setWidth(15);
+            $objActSheet->getColumnDimension('D')->setWidth(12);
+            $objActSheet->getColumnDimension('F')->setWidth(30);
+            $objActSheet->getColumnDimension('G')->setWidth(15);
+            $objActSheet->getColumnDimension('H')->setWidth(15);
+            $objActSheet->getColumnDimension('I')->setWidth(13);
+            $objActSheet->getColumnDimension('J')->setWidth(13);
+            $objActSheet->getColumnDimension('K')->setWidth(15);
+            $objActSheet->getColumnDimension('M')->setWidth(12);
+            $objActSheet->getColumnDimension('N')->setWidth(28);
+            $objActSheet->getColumnDimension('O')->setWidth(28);
+            $objActSheet->getColumnDimension('P')->setWidth(28);
+            $objActSheet->getColumnDimension('Q')->setWidth(28);
+
+            // 全部居中
+            $objPHPExcel->getActiveSheet()->getStyleByColumnAndRow(0, 0, 16, 3 + $count)->getAlignment()->setVertical(\PHPExcel_Style_Alignment::VERTICAL_CENTER);
+            $objPHPExcel->getActiveSheet()->getStyleByColumnAndRow(0, 0, 16, 3 + $count)->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+            // 全部自动换行
+            $objPHPExcel->getActiveSheet()->getStyleByColumnAndRow(0, 0, 16, 3 + $count)->getAlignment()->setWrapText(true);
+
+            //保存文件
+            $fileName = '导出任务填报' . time();  
+            header('pragma:public');
+            header('Content-type:application/vnd.ms-excel;charset=utf-8;name="'.$fileName.'.xlsx"');
+            header('Content-Disposition:attachment;filename=' . $fileName . '.xlsx');//attachment新窗口打印inline本窗口打印
+            header('Cache-Control: max-age=0');
+            $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');  
+
+            //返回已经存好的文件目录地址提供下载  
+            $response = array(  
+                'success'   =>  true,  
+                'url'       =>  saveExcelToLocalFile($objWriter, $fileName)  
+            );  
+            $this->success('', '', $response);  
+            exit();  
+        }
+        catch (\PHPExcel_Exception $ex)
+        {
+            return $ex->getMessage();
+        }
+    }
+>>>>>>> 50b0602ab85d37c03551e3eac5a0d65223ab1c5e
 }

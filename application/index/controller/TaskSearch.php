@@ -285,7 +285,7 @@ class TaskSearch extends Common
 			//返回已经存好的文件目录地址提供下载  
 			$response = array(  
 				'success'	=>	true,  
-				'url' 		=>	$this->saveExcelToLocalFile($objWriter, $fileName)  
+				'url' 		=>	saveExcelToLocalFile($objWriter, $fileName)  
 			);  
 			$this->success('', '', $response);  
 			exit();  
@@ -294,20 +294,5 @@ class TaskSearch extends Common
     	{
     		return $ex->getMessage();
     	}
-	}
-
-	//生成xlsx文件并存入当前文件目录
-	public function saveExcelToLocalFile($objWriter, $fileName)
-	{
-	    // make sure you have permission to write to directory
-	    $filePath = ROOT_PATH . 'public' . DS . 'excel' . DS . $fileName . '.xlsx'; 
-	    // $filePath = './excel' . DS . $fileName . '.xlsx'; 
-	    $objWriter->save($filePath);
-	    return $filePath;  
-	}
-
-	public function test()
-	{
-		dump($_SERVER);
 	}
 }
