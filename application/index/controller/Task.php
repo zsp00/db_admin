@@ -536,8 +536,8 @@ class Task extends Common
 
         // 检索条件
         $where = [
-            'content'   =>  ['like','%'.$keyword.'%'],
-            'status'    =>  ['in', '1,2'],
+            'task.content'   =>  ['like','%'.$keyword.'%'],
+            'task.status'    =>  ['in', '1,2'],
         ];
 
         // 查询当前用户有没有查看所有任务列表的权限
@@ -564,6 +564,7 @@ class Task extends Common
                 ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
                 ->where($where)
                 ->where(function ($query) use ($deptNo, $empNo) {
                     $query->where([
@@ -589,9 +590,9 @@ class Task extends Common
                     't3.duty'               =>  'duty3',
                     't3.leader'             =>  'leader3',
                     'task_data.deptNo'      =>  'tdDeptNo',
-                    'task_data.completeSituation',
-                    'task_data.problemSuggestions',
-                    'task_data.analysis',
+                    'task_data.completeSituation'   =>  'complete',
+                    'task_data.problemSuggestions'  =>  'problem',
+                    'task_data.analysis'            =>  'analysis',
                     'task_data.currentLevel'    =>  'taskDataStatus',
                     'task_data.status'          =>  'currMonthStatus',
                     'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
@@ -621,9 +622,9 @@ class Task extends Common
                     't3.duty'               =>  'duty3',
                     't3.leader'             =>  'leader3',
                     'task_data.deptNo'      =>  'tdDeptNo',
-                    'task_data.completeSituation',
-                    'task_data.problemSuggestions',
-                    'task_data.analysis',
+                    'task_data.completeSituation'  =>  'complete',
+                    'task_data.problemSuggestions' =>  'problem',
+                    'task_data.analysis'           =>  'analysis',
                     'task_data.currentLevel'    =>  'taskDataStatus',
                     'task_data.status'          =>  'currMonthStatus',
                     'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
@@ -638,16 +639,6 @@ class Task extends Common
             foreach($list as $k=>$v)
             {
                 $list[$k]['deptNo'] = $OrgDept->where(['DEPT_NO'=>$v['tdDeptNo']])->value('DEPT_NAME');
-                $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', $v['typeId']]])->column('typeName'));
-                $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
-                if (count($participateLevel) <= 0)
-                    return false;
-                $list[$k]['getStepIds'] = $participateLevel['0'];
-                $list[$k]['getTaskStatusMsg'] = model('Task')->getTaskStatusMsg($v['id']);
-
-                if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
-                    continue;
-
                 $taskList[] = $list[$k];
             }
             if($ifStatus != ''){
@@ -659,8 +650,7 @@ class Task extends Common
             }
         }
 
-        $count = count($list);
-
+        $count = count($taskList);
         try 
         {
             //导出Excel
@@ -691,123 +681,11 @@ class Task extends Common
             $serialNumIndex = $title1Index = $title2Index = $detail2Index = $detail3Index = $duty3Index = $dutyIndex = 0;
             $fileds = array('serialNum' => 0, 'title1' => 1, 'detail1' => 2, 'leader1' => 3, 'title2' => 4, 'detail2' => 5, 'leader2' => 6, 'deptNo2' => 7, 'detail3' => 8, 'duty3' => 9, 'leader3' => 10, 'duty' => 12, 'content' => 13, 'complete' => 14, 'problem' => 15, 'analysis' => 16);
 
-            foreach ($list as $k => $v)
+            foreach ($taskList as $k => $v)
             {
                 foreach ($fileds as $kk => $vv)
                     $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow($vv, 4 + $k, $v[$kk]);
                 $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(11, 4 + $k, preg_match_all('/^\d*$/', $v['deptNo']) ? model('OrgDept')->getName($v['deptNo']) : $v['deptNo']);
-
-                // 判断单元格是否需要合并，$k+4是当前要合并的行号，$index是合并起始的行号
-                // 序号列，三级目标任务
-                if ($v['serialNum'] == $serialNum)
-                {
-                    if ($k + 4 - $serialNumIndex > 1)   // 当要合并3行以上时，先把之前合并的两行或者多行解除合并
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(0, $serialNumIndex, 0, 4 + $k - 1);
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(0, $serialNumIndex, 0, 4 + $k);
-                }
-                else
-                {
-                    $serialNum = $v['serialNum'];
-                    $serialNumIndex = $k + 4;
-                }
-                // 一级任务
-                if ($v['title1'] == $title1)
-                {
-                    if ($k + 4 - $title1Index > 1)
-                    {
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(1, $title1Index, 1, 4 + $k - 1);
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(2, $title1Index, 2, 4 + $k - 1);  
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(3, $title1Index, 3, 4 + $k - 1);  
-                    }
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(1, $title1Index, 1, 4 + $k);
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(2, $title1Index, 2, 4 + $k);
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(3, $title1Index, 3, 4 + $k);
-                }
-                else
-                {
-                    $title1 = $v['title1'];
-                    $title1Index = $k + 4;
-                }
-                // 二级目标任务
-                if ($v['title2'] == $title2)
-                {
-                    if ($k + 4 - $title2Index > 1)
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(4, $title2Index, 4, 4 + $k - 1);
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(4, $title2Index, 4, 4 + $k);
-                }
-                else
-                {
-                    $title2 = $v['title2'];
-                    $title2Index = $k + 4;
-                }
-                // 二级目标任务
-                if ($v['detail2'] == $detail2)
-                {
-                    if ($k + 4 - $detail2Index > 1)
-                    {
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(5, $detail2Index, 5, 4 + $k - 1);
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(6, $detail2Index, 6, 4 + $k - 1);  
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(7, $detail2Index, 7, 4 + $k - 1);  
-                    }
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(5, $detail2Index, 5, 4 + $k);
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(6, $detail2Index, 6, 4 + $k);
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(7, $detail2Index, 7, 4 + $k);
-                }
-                else
-                {
-                    $detail2 = $v['detail2'];
-                    $detail2Index = $k + 4;
-                }
-                // 三级目标任务
-                if ($v['detail3'] == $detail3)
-                {
-                    if ($v['duty3'] == '-' || $v['duty3'] == '')   // 如果是一列则把第二列也一同拆分
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(8, $detail3Index, 9, 4 + $k - 1);
-                    else
-                        $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(8, $detail3Index, 8, 4 + $k - 1);
-                }
-                else
-                {
-                    $detail3 = $v['detail3'];
-                    $detail3Index = $k + 4;
-                }
-                if ($v['duty3'] == '-' || $v['duty3'] == '')   // 如果是一列则把第二列也一同合并
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(8, $detail3Index, 9, 4 + $k);
-                else
-                {
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(8, $detail3Index, 8, 4 + $k);   // 单合并两列
-                    if ($v['duty3'] == $duty3)        // 三级目标任务的责任列合并
-                    {
-                        if ($k + 4 - $duty3Index > 1)
-                            $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(9, $duty3Index, 9, 4 + $k - 1);
-                        $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(9, $duty3Index, 9, 4 + $k);
-                    }
-                    else
-                    {
-                        $duty3 = $v['duty3'];
-                        $duty3Index = $k + 4;
-                    }
-                }
-                // 责任部室、二级单位、目标任务
-                if ($v['duty'] == '-')           // 如果目标任务为‘-’，把责任部室与其合并
-                {
-                    $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(11, 4 + $k, 12, 4 + $k);
-                }
-                else 
-                {
-                    // 四级任务的目标任务
-                    if ($v['duty'] == $duty)
-                    {
-                        if ($k + 4 - $dutyIndex > 1)
-                            $objPHPExcel->getActiveSheet()->unmergeCellsByColumnAndRow(12, $dutyIndex, 12, 4 + $k - 1);
-                        $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(12, $dutyIndex, 12, 4 + $k);
-                    }
-                    else
-                    {
-                        $duty = $v['duty'];
-                        $dutyIndex = $k + 4;
-                    }
-                }
             }
 
             // 合并单元格（表头）
