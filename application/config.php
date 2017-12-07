@@ -273,4 +273,21 @@ return [
         // 数据库表前缀
         'prefix'      => 'U_',
     ],
+    //统一账号的连接
+    'uams' => [
+        // 数据库类型
+        'type'        => 'mysql',
+        // 服务器地址
+        'hostname'    => '192.168.251.248',
+        // 数据库名
+        'database'    => 'uams',
+        // 数据库用户名
+        'username'    => 'uams',
+        // 数据库密码
+        'password'    => '1qaz@WSX',
+        // 数据库编码默认采用utf8
+        'charset'     => 'utf8',
+        // 数据库表前缀
+        'prefix'      => '',
+    ]
 ];

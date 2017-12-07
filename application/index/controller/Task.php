@@ -171,7 +171,7 @@ class Task extends Common
      * @param  int $nextLevel    当前流程的下一步
      * @return array               提交结果
      */
-    public function submits($id, $currentLevel, $nextLevel)
+    public function submits($id, $pId, $currentLevel, $nextLevel)
     {
         //获取用户的信息
         $userInfo = getUserInfo();
@@ -202,6 +202,12 @@ class Task extends Common
         }
 
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        //提交完成后，向这级的人微信推送消息
+        $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
+        $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
+        $userId = Model('Task')->getUserId($empNoPushChat);
+        $pushChat= Model('Task')->weChatPush($userId,'督办任务被提交请您查看');
+
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -256,6 +262,7 @@ class Task extends Common
         $id = $data['id'];
         $currentLevel = $data['currentLevel'];
         $nextLevel = $data['nextLevel'];
+        $pId = $data['pId'];
         //获取用户的权限
         $userInfo = getUserInfo();
         $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
@@ -270,6 +277,12 @@ class Task extends Common
             $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
         }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        //驳回完成后，向这级的人微信推送消息
+        $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
+        $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
+        $userId = Model('Task')->getUserId($empNoPushChat);
+        $pushChat= Model('Task')->weChatPush($userId,'督办任务被驳回请您查看');
+
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -525,4 +538,11 @@ class Task extends Common
         else
             $this->error('尚有任务未填报，暂不能全部提交！');
     }
+
+    //测试微信的推送
+    public function ceshi()
+    {
+        Model('Task')->testPush();
+    }
+
 }
