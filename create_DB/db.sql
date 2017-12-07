@@ -107,6 +107,7 @@ create table d_supervise_record
 (
   id                   int                       auto_increment primary key,
   srUser               varchar(10)               not null            comment '督办人Id',
+  srDeptNo             varchar(10)               not null            comment '督办部门Id',
   tId                  int                       not null            comment '任务Id',
   srDate               mediumint                 not null            comment '督办任务的月份',
   srTime               int                       not null            comment '发起督办时间'

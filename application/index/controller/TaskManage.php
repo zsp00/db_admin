@@ -2,12 +2,17 @@
 namespace app\index\controller;
 use app\index\model;
 use think\Controller;
+use think\Cache;
+use TimeCheer\Weixin\QYAPI\AccessToken;
+use TimeCheer\Weixin\QYAPI\Message;
+use TimeCheer\Weixin\QYAPI\User;
 class TaskManage extends Common
 {
     //获取全部任务列表
-    public function getTaskList()
+    public function getTaskList($page = '1', $listRow = '10')
     {
-        $result = Model('Task')->select();
+        $result = Model('Task')->page($page, $listRow)->select();
+        $allTotal = count( Model('Task')->select());
         foreach($result as $k=>$v){
             $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
 //            $result[$k]['typeId'] = Model('TaskType')->where(['id' => $v['typeId']])->value('typeName');
@@ -16,6 +21,12 @@ class TaskManage extends Common
             $result[$k]['releaseTime'] = date('Y-m-d H:i:s',$v['releaseTime']);
             $result[$k]['completeTime'] = date('Y-m-d H:i:s',$v['completeTime']);
         }
+        $result = array(
+            'list'		=>	$result,
+            'page'		=>	(int)$page,
+            'listRow'	=>	(int)$listRow,
+            'total'		=>	$allTotal
+        );
         if($result){
             $this->success($result);
         }
@@ -86,7 +97,7 @@ class TaskManage extends Common
     }
 
     //获取督办任务列表
-    public function getSuperviceList($keyword = '', $level = '', $typeId = '', $deptNo = '', $taskdataStatus = '')
+    public function getSuperviceList($keyword = '', $level = '', $typeId = '', $deptNo = '', $taskdataStatus = '', $page = '1', $listRow = '10')
     {
         $where = [
             'content'   =>  ['like','%'.$keyword.'%'],
@@ -115,6 +126,7 @@ class TaskManage extends Common
             ->join('TaskTasktype tt','t.id =tt.tId ')
             ->join('TaskData td', 't.id=td.tid and td.tDate=' . $tDate, 'left')
             ->where($where)
+            ->page($page, $listRow)
             ->group('t.id')
             ->field(['t.*','tt.typeId','tt.tId','td.status'=>'currMonthStatus'])
             ->select();
@@ -137,7 +149,12 @@ class TaskManage extends Common
             }
             $result[$k]['taskType'] = implode(',',$typeNum);
         }
-        $result['list'] = $result;
+        $result = array(
+            'list'		=>	$result,
+            'page'		=>	(int)$page,
+            'listRow'	=>	(int)$listRow,
+            'total'		=>	$allTotal
+        );
         $result['number']['allTotal'] = $allTotal;
         $result['number']['supNum'] = $supNum;
         $this->success($result);
@@ -170,9 +187,13 @@ class TaskManage extends Common
         }
         $tDate = date('Ym',time());
         $previousMonth = date('Ym',strtotime("-1 month"));
+
+        $taskList = Model('Task')->where(['status' => ['in','1,2']])->select();
         if(is_array($id)){
-           foreach($id as $k=>$v){
-               if($v['taskDataValue'] == true){
+           $taskDataAll = array();
+           $superviseRecordAll = array();
+           foreach($taskList as $k=>$v){
+               if(Model('TaskData')->where(['tId'=>$v['id'],'tDate'=>$tDate,'status'=>'1'])->find()){
                    continue;
                }
                $pId = Model('Task')->where(['id'=>$v['id']])->value('pId');
@@ -204,17 +225,24 @@ class TaskManage extends Common
                    $SupRecord = [
                        'srUser' => $userInfo['EMP_NO'],
                        'tId' => $id,
+                       'srDeptNo' => $v2,
                        'srDate' => $tDate,
                        'srTime' => time()
                    ];
-                   $result =Model('TaskData')->insert($taskDateInfo);
-                   $result2 = Model('SuperviseRecord')->insert($SupRecord);
+                   $taskDataAll[] = $taskDateInfo;
+                   $superviseRecordAll[] = $SupRecord;
                }
            }
+            $result =Model('TaskData')->insertAll($taskDataAll);
+            $result2 = Model('SuperviseRecord')->insertAll($superviseRecordAll);
         }else{
             $pId = Model('Task')->where(['id'=>$id])->value('pId');
-            $deptNo = Model('Task')->where(['id'=>$id])->value('deptNo');
+            //根据查出的流程pId查询满足开始督办一级的所有人
+            $processData = json_decode(Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>1])->value('audit_user'));
+            //$empNo = Model('UserEmp')->getAllEmpNo($processData);
+
             //正则匹配是组织id还是各部室各部门
+            $deptNo = Model('Task')->where(['id'=>$id])->value('deptNo');
             $rule = '/^\d*$/';
             $ruleResult = preg_match($rule, $deptNo, $matches);
             if($ruleResult){
@@ -222,6 +250,7 @@ class TaskManage extends Common
             }else{
                 $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
             }
+            //数据处理保存数据库
             foreach($deptNo as $k => $v){
                 $taskDateInfo = [
                     'tId' => $id,
@@ -241,6 +270,7 @@ class TaskManage extends Common
                 $SupRecord = [
                     'srUser' => $userInfo['EMP_NO'],
                     'tId' => $id,
+                    'srDeptNo' => $v,
                     'srDate' => $tDate,
                     'srTime' => time()
                 ];
@@ -253,6 +283,46 @@ class TaskManage extends Common
         }else{
             $this->error('任务督办失败!');
         }
+    }
+
+
+    //微信信息推送获取access_token
+    public function getAccessToken()
+    {
+        $corpid = 'wx5b276b7fd7624029';    //企业的id
+        $agentId = '1000005';    //应用的id
+        //获取应用的access_token
+        if (!($access_token = Cache::get('wjdc_access_token'))) {
+            //应用secret，需要修改-------------------------------------------
+            $corpsecret = 'T7EL6lXcBzFXqDhdjUwfgoAWIXM5SHOam0prfiaev4I';
+            $at = new AccessToken($corpid, $corpsecret);
+            $access_token = $at->get();
+            Cache::set('wjdc_access_token', $access_token, 7200);
+        }
+        return $access_token;
+    }
+
+    /**
+     * 获取需要发送的userId
+     * 通过统一账号（用户的EMP_NO查询用户微信端的useId(uams库里面的Person表)）
+     *return userId;
+     */
+    public function getUserId($empNo)
+    {
+
+    }
+
+    public function testPush()
+    {
+        $agentId = '1000005';
+        $access_token = $this->getAccessToken();
+        $message = new Message($access_token);
+        $user= new User($access_token);
+
+        //$a= $message->setToUser(['37162']);
+        $a= $message->setToParty('2957');
+        $b= $message->setText('您有任务需要督办！');
+        $d = $message->send($agentId);
     }
 }
 
