@@ -539,14 +539,12 @@ class Task extends Common
             $this->error('尚有任务未填报，暂不能全部提交！');
     }
 
-<<<<<<< HEAD
+
     //测试微信的推送
     public function ceshi()
     {
         Model('Task')->testPush();
     }
-
-=======
     // 导出任务填报列表
     public function exportFillinList($keyword = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true')
     {
@@ -620,7 +618,7 @@ class Task extends Common
                 ]);
             $list = $model->group('task_data.id')->select();
         }
-        else 
+        else
         {
             $model = model('Task')->alias('task')
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -672,14 +670,14 @@ class Task extends Common
         }
 
         $count = count($taskList);
-        try 
+        try
         {
             //导出Excel
             $objPHPExcel = new \PHPExcel();
             //应用第一个sheet页
             $objPHPExcel->setActiveSheetIndex(0);
             $objActSheet = $objPHPExcel->getActiveSheet();
-            
+
             // 写入数据（表头）
             $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(0, 1, '《北京市地铁运营有限公司“十三五”发展规划》任务分解及年度实施计划');
             $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(0, 2, '序号');
@@ -721,7 +719,7 @@ class Task extends Common
             $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(10, 2, 10, 3);
             $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(11, 2, 12, 3);
             $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(13, 2, 16, 2);
-            
+
             // 修改样式
             $objActSheet->getColumnDimension('C')->setWidth(15);
             $objActSheet->getColumnDimension('D')->setWidth(12);
@@ -744,25 +742,24 @@ class Task extends Common
             $objPHPExcel->getActiveSheet()->getStyleByColumnAndRow(0, 0, 16, 3 + $count)->getAlignment()->setWrapText(true);
 
             //保存文件
-            $fileName = '导出任务填报' . time();  
+            $fileName = '导出任务填报' . time();
             header('pragma:public');
             header('Content-type:application/vnd.ms-excel;charset=utf-8;name="'.$fileName.'.xlsx"');
             header('Content-Disposition:attachment;filename=' . $fileName . '.xlsx');//attachment新窗口打印inline本窗口打印
             header('Cache-Control: max-age=0');
-            $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');  
+            $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
 
-            //返回已经存好的文件目录地址提供下载  
-            $response = array(  
-                'success'   =>  true,  
-                'url'       =>  saveExcelToLocalFile($objWriter, $fileName)  
-            );  
-            $this->success('', '', $response);  
-            exit();  
+            //返回已经存好的文件目录地址提供下载
+            $response = array(
+                'success'   =>  true,
+                'url'       =>  saveExcelToLocalFile($objWriter, $fileName)
+            );
+            $this->success('', '', $response);
+            exit();
         }
         catch (\PHPExcel_Exception $ex)
         {
             return $ex->getMessage();
         }
     }
->>>>>>> 50b0602ab85d37c03551e3eac5a0d65223ab1c5e
 }
