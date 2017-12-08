@@ -527,8 +527,16 @@ class Task extends Common
     }
 
     // 导出任务填报列表
-    public function exportFillinList($keyword = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true')
+    public function exportFillinList($condition)
     {
+        $params = json_decode($condition);
+        // dump($params);exit;
+        $keyword = $params->keyword;
+        $typeId = $params->typeId;
+        $ifStatus = $params->ifStatus;
+        $dept = $params->dept;
+        $needToDo = $params->needToDo;
+
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $OrgDept = new OrgDept();
@@ -556,7 +564,7 @@ class Task extends Common
 
         $tDate = date('Ym');
 
-        if ($needToDo == 'true')
+        if ($needToDo == true)
         {
             $model = model('Task')->alias('task')
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -631,7 +639,6 @@ class Task extends Common
                 ]);
             $list = $model->group('task_data.id')->order('serialNum, id')->select();
         }
-
         $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
         if($list)
         {
@@ -722,20 +729,18 @@ class Task extends Common
             // 全部自动换行
             $objPHPExcel->getActiveSheet()->getStyleByColumnAndRow(0, 0, 16, 3 + $count)->getAlignment()->setWrapText(true);
 
+            ob_end_clean();
+            ob_start();
             //保存文件
             $fileName = '导出任务填报' . time();  
             header('pragma:public');
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');  
             header('Content-type:application/vnd.ms-excel;charset=utf-8;name="'.$fileName.'.xlsx"');
             header('Content-Disposition:attachment;filename=' . $fileName . '.xlsx');//attachment新窗口打印inline本窗口打印
             header('Cache-Control: max-age=0');
             $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');  
+            $objWriter->save('php://output');  
 
-            //返回已经存好的文件目录地址提供下载  
-            $response = array(  
-                'success'   =>  true,  
-                'url'       =>  saveExcelToLocalFile($objWriter, $fileName)  
-            );  
-            $this->success('', '', $response);  
             exit();  
         }
         catch (\PHPExcel_Exception $ex)

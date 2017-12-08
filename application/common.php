@@ -81,7 +81,7 @@ function getNameList($value,$type)
     }
     else if($type == '1')
     {
-        $username = model('UserEmp')->where(array('EMP_NO'=>$value))->find();
+        $username = model('UserEmp')->where('EMP_NO', $value)->find();
         $str = $username['EMP_NAME'];
         $info = model('OrgDept')->where(array('DEPT_NO'=>$username['DEPTNO']))->find();
         if(!$info)
@@ -132,7 +132,7 @@ function saveExcelToLocalFile($objWriter, $fileName)
 {
     // make sure you have permission to write to directory
     $filePath = ROOT_PATH . 'public' . DS . 'excel' . DS . $fileName . '.xlsx'; 
-    // $filePath = './excel' . DS . $fileName . '.xlsx'; 
+    // $filePath = 'excel' . DS . $fileName . '.xlsx'; 
     $objWriter->save($filePath);
     return $filePath;  
 }

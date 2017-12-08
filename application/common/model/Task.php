@@ -143,8 +143,7 @@ class Task extends Model
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
                 ->where($where)->group('task_data.id')->count();
-
-
+                
         $commitNum = 0;
         $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
         if($list)
@@ -158,13 +157,11 @@ class Task extends Model
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', $v['typeId']]])->column('typeName'));
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
-                if (count($participateLevel) <= 0)
-                    return false;
-                $list[$k]['getStepIds'] = $participateLevel['0'];
-                $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
-
                 if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
                     continue;
+
+                $list[$k]['getStepIds'] = $participateLevel['0'];
+                $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
 
                 if ($v['taskDataStatus'] >= $participateLevel[0])    // 针对于当前登录用户  判断本月提交了多少个任务
                     $commitNum++;
@@ -233,11 +230,13 @@ class Task extends Model
                         $label .= '：待办';
 
                     $steps[$kk]['label'] = $label;
+                    // if ($vv['levelNo'] == 5)
                     $steps[$kk]['participate'] = $this->getParticipateName($vv['audit_user']);
                 }
                 $taskDataList[$k]['steps'] = $steps;
                 // 步骤条第一步，显示发起督办任务信息
-                $superviseRecord = model('SuperviseRecord')->where(['tId'=>$id, 'srDate'=>$v['tDate']])->find();
+                $superviseRecord = model('SuperviseRecord')->where(['tId'=>$id, 'srDeptNo'=>$tdDeptNo, 'srDate'=>$v['tDate']])->find();
+                // echo model('SuperviseRecord')->getLastSql();exit;
                 $stepFirst['fullName'] = getAllName('person', $superviseRecord['srUser'], true);  // 名字到公司的组织结构
                 $stepFirst['name'] = substr($stepFirst['fullName'], strrpos($stepFirst['fullName'], '/') + 1);   // 名字
                 $stepFirst['text'] = '于 ' . $superviseRecord['srTime'] . ' 对该任务发起了督办';
@@ -257,6 +256,11 @@ class Task extends Model
         }
     }
 
+    /**
+     * 获取流程参与者信息
+     * @param  string $str 参与者-json
+     * @return array      参与者信息，配合前端的数组
+     */
     private function getParticipateName($str)
     {
         $arr = json_decode($str, true);
