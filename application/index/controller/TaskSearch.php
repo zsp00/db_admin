@@ -74,7 +74,7 @@ class TaskSearch extends Common
         if ($condition->deptValue != [])
             $where['task.deptNo'] = $condition->deptValue[1];
         if ($condition->timeLimit != '')
-            $where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
+            $where['task_data.tDate'] = date('Ym', strtotime($condition->timeLimit));
         if ($condition->leaderFirst != '')
             $where['t1.leader'] = $condition->leaderFirst;
         if ($condition->leaderSecond != '')
@@ -276,18 +276,18 @@ class TaskSearch extends Common
 
 	    	//保存文件
 	    	$fileName = '导出任务' . time();  
-			header('pragma:public');
-		    header('Content-type:application/vnd.ms-excel;charset=utf-8;name="'.$fileName.'.xlsx"');
-		    header('Content-Disposition:attachment;filename=' . $fileName . '.xlsx');//attachment新窗口打印inline本窗口打印
-		    header('Cache-Control: max-age=0');
-			$objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');  
 
-			//返回已经存好的文件目录地址提供下载  
-			$response = array(  
-				'success'	=>	true,  
-				'url' 		=>	saveExcelToLocalFile($objWriter, $fileName)  
-			);  
-			$this->success('', '', $response);  
+
+	    	ob_end_clean();
+            ob_start();
+            //保存文件
+            header('pragma:public');
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');  
+            header('Content-type:application/vnd.ms-excel;charset=utf-8;name="'.$fileName.'.xlsx"');
+            header('Content-Disposition:attachment;filename=' . $fileName . '.xlsx');//attachment新窗口打印inline本窗口打印
+            header('Cache-Control: max-age=0');
+            $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');  
+            $objWriter->save('php://output');  
 			exit();  
     	}
     	catch (\PHPExcel_Exception $ex)
