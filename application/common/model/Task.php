@@ -2,6 +2,10 @@
 namespace app\common\model;
 use think\Db;
 use think\Model;
+use think\Cache;
+use TimeCheer\Weixin\QYAPI\AccessToken;
+use TimeCheer\Weixin\QYAPI\Message;
+use TimeCheer\Weixin\QYAPI\User as Users;
 
 class Task extends Model
 {
@@ -384,5 +388,58 @@ class Task extends Model
             $list = $model->page($page, $listRow)->group('id')->select();
 
         return $list;
+    }
+
+
+    //微信信息推送获取access_token
+    public function getAccessToken()
+    {
+        $corpid = 'wx5b276b7fd7624029';    //企业的id
+        $agentId = '1000005';    //应用的id
+        //获取应用的access_token
+        if (!($access_token = Cache::get('wjdc_access_token'))) {
+            //应用secret，需要修改-------------------------------------------
+            $corpsecret = 'T7EL6lXcBzFXqDhdjUwfgoAWIXM5SHOam0prfiaev4I';
+            $at = new AccessToken($corpid, $corpsecret);
+            $access_token = $at->get();
+            Cache::set('wjdc_access_token', $access_token, 7200);
+        }
+        return $access_token;
+    }
+
+    /**
+     * 获取需要发送的userId
+     * 通过统一账号（用户的EMP_NO查询用户微信端的useId(uams库里面的Person表)）
+     *return userId;
+     */
+    public function getUserId($empNo)
+    {
+        if(empty($empNo)){
+            return false;
+        }
+        $empNo = trim($empNo,',');
+        $empNo = explode(',',$empNo);
+        $userId = array();
+        if(is_array($empNo)){
+            foreach($empNo as $k=>$v){
+                $userId[$k] = Model('Person')->where(['empNumber'=>$v])->value('id');
+            }
+        }else{
+            $userId[] = Model('Person')->where(['empNumber'=>$empNo])->value('id');
+        }
+        return $userId;
+
+    }
+
+    public function weChatPush($userId,$setText)
+    {
+        $agentId = '1000005';
+        $access_token = $this->getAccessToken();
+        $message = new Message($access_token);
+        $user= new Users($access_token);
+
+        $message->setToUser($userId);
+        $message->setText($setText);
+        $message->send($agentId);
     }
 }

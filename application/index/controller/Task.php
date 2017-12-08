@@ -171,7 +171,7 @@ class Task extends Common
      * @param  int $nextLevel    当前流程的下一步
      * @return array               提交结果
      */
-    public function submits($id, $currentLevel, $nextLevel)
+    public function submits($id, $pId, $currentLevel, $nextLevel)
     {
         //获取用户的信息
         $userInfo = getUserInfo();
@@ -202,6 +202,12 @@ class Task extends Common
         }
 
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        //提交完成后，向这级的人微信推送消息
+        $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
+        $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
+        $userId = Model('Task')->getUserId($empNoPushChat);
+        $pushChat= Model('Task')->weChatPush($userId,'督办任务被提交请您查看');
+
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -256,6 +262,7 @@ class Task extends Common
         $id = $data['id'];
         $currentLevel = $data['currentLevel'];
         $nextLevel = $data['nextLevel'];
+        $pId = $data['pId'];
         //获取用户的权限
         $userInfo = getUserInfo();
         $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
@@ -270,6 +277,12 @@ class Task extends Common
             $update = ['currentLevel' => $currentLevel - 1, 'nextLevel' => $nextLevel - 1];
         }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+        //驳回完成后，向这级的人微信推送消息
+        $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
+        $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
+        $userId = Model('Task')->getUserId($empNoPushChat);
+        $pushChat= Model('Task')->weChatPush($userId,'督办任务被驳回请您查看');
+
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -526,6 +539,12 @@ class Task extends Common
             $this->error('尚有任务未填报，暂不能全部提交！');
     }
 
+
+    //测试微信的推送
+    public function ceshi()
+    {
+        Model('Task')->testPush();
+    }
     // 导出任务填报列表
     public function exportFillinList($condition)
     {
@@ -607,7 +626,7 @@ class Task extends Common
                 ]);
             $list = $model->group('task_data.id')->select();
         }
-        else 
+        else
         {
             $model = model('Task')->alias('task')
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -658,14 +677,14 @@ class Task extends Common
         }
 
         $count = count($taskList);
-        try 
+        try
         {
             //导出Excel
             $objPHPExcel = new \PHPExcel();
             //应用第一个sheet页
             $objPHPExcel->setActiveSheetIndex(0);
             $objActSheet = $objPHPExcel->getActiveSheet();
-            
+
             // 写入数据（表头）
             $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(0, 1, '《北京市地铁运营有限公司“十三五”发展规划》任务分解及年度实施计划');
             $objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(0, 2, '序号');
@@ -707,7 +726,7 @@ class Task extends Common
             $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(10, 2, 10, 3);
             $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(11, 2, 12, 3);
             $objPHPExcel->getActiveSheet()->mergeCellsByColumnAndRow(13, 2, 16, 2);
-            
+
             // 修改样式
             $objActSheet->getColumnDimension('C')->setWidth(15);
             $objActSheet->getColumnDimension('D')->setWidth(12);
@@ -732,7 +751,7 @@ class Task extends Common
             ob_end_clean();
             ob_start();
             //保存文件
-            $fileName = '导出任务填报' . time();  
+            $fileName = '导出任务填报' . time();
             header('pragma:public');
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');  
             header('Content-type:application/vnd.ms-excel;charset=utf-8;name="'.$fileName.'.xlsx"');

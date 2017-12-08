@@ -2,10 +2,7 @@
 namespace app\index\controller;
 use app\index\model;
 use think\Controller;
-use think\Cache;
-use TimeCheer\Weixin\QYAPI\AccessToken;
-use TimeCheer\Weixin\QYAPI\Message;
-use TimeCheer\Weixin\QYAPI\User;
+
 class TaskManage extends Common
 {
     //获取全部任务列表
@@ -283,46 +280,6 @@ class TaskManage extends Common
         }else{
             $this->error('任务督办失败!');
         }
-    }
-
-
-    //微信信息推送获取access_token
-    public function getAccessToken()
-    {
-        $corpid = 'wx5b276b7fd7624029';    //企业的id
-        $agentId = '1000005';    //应用的id
-        //获取应用的access_token
-        if (!($access_token = Cache::get('wjdc_access_token'))) {
-            //应用secret，需要修改-------------------------------------------
-            $corpsecret = 'T7EL6lXcBzFXqDhdjUwfgoAWIXM5SHOam0prfiaev4I';
-            $at = new AccessToken($corpid, $corpsecret);
-            $access_token = $at->get();
-            Cache::set('wjdc_access_token', $access_token, 7200);
-        }
-        return $access_token;
-    }
-
-    /**
-     * 获取需要发送的userId
-     * 通过统一账号（用户的EMP_NO查询用户微信端的useId(uams库里面的Person表)）
-     *return userId;
-     */
-    public function getUserId($empNo)
-    {
-
-    }
-
-    public function testPush()
-    {
-        $agentId = '1000005';
-        $access_token = $this->getAccessToken();
-        $message = new Message($access_token);
-        $user= new User($access_token);
-
-        //$a= $message->setToUser(['37162']);
-        $a= $message->setToParty('2957');
-        $b= $message->setText('您有任务需要督办！');
-        $d = $message->send($agentId);
     }
 }
 
