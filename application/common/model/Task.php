@@ -410,18 +410,21 @@ class Task extends Model
      */
     public function getUserId($empNo)
     {
-        if(empty($empNo)){
-            return false;
-        }
-        $empNo = trim($empNo,',');
-        $empNo = explode(',',$empNo);
-        $userId = array();
-        if(is_array($empNo)){
-            foreach($empNo as $k=>$v){
-                $userId[$k] = Model('Person')->where(['empNumber'=>$v])->value('id');
+        if(is_string($empNo)){
+            $empNo = trim($empNo,',');
+            $empNo = explode(',',$empNo);
+            $userId = array();
+            if(is_array($empNo)){
+                foreach($empNo as $k=>$v){
+                    $userId[$k] = Model('Person')->where(['empNumber'=>$v])->value('id');
+                }
+            }else{
+                $userId[] = Model('Person')->where(['empNumber'=>$empNo])->value('id');
             }
         }else{
-            $userId[] = Model('Person')->where(['empNumber'=>$empNo])->value('id');
+            foreach($empNo as $k2=>$v2){
+                $userId[$k2] =  Model('Person')->where(['empNumber'=>$v2])->value('id');
+            }
         }
         return $userId;
 
@@ -436,6 +439,19 @@ class Task extends Model
 
         $message->setToUser($userId);
         $message->setText($setText);
+        $message->send($agentId);
+    }
+
+
+    public function testPush()
+    {
+        $agentId = '1000005';
+        $access_token = $this->getAccessToken();
+        $message = new Message($access_token);
+        $user= new Users($access_token);
+        //$message->setToUser('37162');
+        $message->setToParty(['2957']);
+        $message->setText('这是测试部门发送');
         $message->send($agentId);
     }
 }

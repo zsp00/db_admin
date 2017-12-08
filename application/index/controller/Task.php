@@ -509,6 +509,12 @@ class Task extends Common
             else
                 $result = false && $result;
         }
+        //提交完成后，向这级的人微信推送消息
+        $currentLevel = Model('TaskData')->where(['id'=>$list[0]['id']])->value('currentLevel');
+        $empNoPushChat = Model('ProcessData')->where(['pId'=>$list[0]['pId'],'levelNo'=>$currentLevel])->value('empNos');
+        $userId = Model('Task')->getUserId($empNoPushChat);
+        $pushChat= Model('Task')->weChatPush($userId,'督办任务被提交请您查看');
+
         if ($result)
             $this->success('全部提交成功！');
         else
@@ -537,13 +543,6 @@ class Task extends Common
             $this->error('系统出现故障，请联系管理员！');
         else
             $this->error('尚有任务未填报，暂不能全部提交！');
-    }
-
-
-    //测试微信的推送
-    public function ceshi()
-    {
-        Model('Task')->testPush();
     }
     // 导出任务填报列表
     public function exportFillinList($keyword = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true')
@@ -761,5 +760,11 @@ class Task extends Common
         {
             return $ex->getMessage();
         }
+    }
+
+    //测试微信的推送
+    public function ceshi()
+    {
+        Model('Task')->testPush();
     }
 }
