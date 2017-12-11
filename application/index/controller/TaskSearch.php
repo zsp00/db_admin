@@ -14,16 +14,17 @@ class TaskSearch extends Common
         if ($condition->taskType != '')
             $where['tt.typeId'] = $condition->taskType;
         if ($condition->deptValue != [])
-            $where['task.deptNo'] = $condition->deptValue[1];
+            $where['td.deptNo'] = $condition->deptValue[1];
+
         if ($condition->timeLimit != '')
         {
         	$month = date('m', strtotime($condition->timeLimit));
-            $where['td.tDate'] = date('Ym', strtotime($condition->timeLimit));
+        	$tDate = date('Ym', strtotime($condition->timeLimit));
         }
         else 
         {
-        	$month = date('m', strtotime('-2 months'));
-        	$where['td.tDate'] = date('Ym', strtotime('-2 months'));
+        	$month = date('m', strtotime('-2 month'));
+        	$tDate = date('Ym', strtotime('-2 month'));
         }
         if ($condition->leaderFirst != '')
             $where['t1.leader'] = $condition->leaderFirst;
@@ -38,12 +39,12 @@ class TaskSearch extends Common
             else 
                 $where['task.status'] = ['<>', '3'];
         }
-		$list = model('Task')->getTaskList($where, false, $page, $listRow);
+		$list = model('Task')->getTaskList($where, false, $page, $listRow, $tDate);
 		$total = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
 			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-            ->join('TaskData td', 'task.id=td.tid', 'left')
+            ->join('TaskData td', 'task.id=td.tId and td.tDate='.$tDate, 'left')
             ->join('TaskTasktype tt', 'task.id=tt.tId')->where($where)->group('task.id')->count();
 
 		foreach ($list as $k => $v)   

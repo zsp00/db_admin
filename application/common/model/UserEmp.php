@@ -3,6 +3,7 @@ namespace app\common\model;
 use think\Config;
 use think\Db;
 use think\Model;
+use think\Cookie;
 
 class UserEmp extends \app\common\model\User implements UserInterface
 {
@@ -91,6 +92,7 @@ class UserEmp extends \app\common\model\User implements UserInterface
     public function logout(){
         cookie('member',null);
         session('member',null);
+		Cookie::set('token_'.Config::get('uams.appNo'),null,['domain'=>Config::get('cookie.basedomain')]);
         return true;
     }
 

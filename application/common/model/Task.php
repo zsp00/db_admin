@@ -33,17 +33,17 @@ class Task extends Model
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-		$ifStatus = '';
+        $ifStatus = '';
 
         foreach($map as $k=>$v)
         {
             if ($k == 'typeId')
-				$where['task_tasktype.'.$k] = $v;
+                $where['task_tasktype.'.$k] = $v;
             else if ($k == 'deptNo')
                 $where['task_data.deptNo'] = $v;
-			else if ($k == 'ifStatus')
-				$ifStatus = $map['ifStatus'];
-			else
+            else if ($k == 'ifStatus')
+                $ifStatus = $map['ifStatus'];
+            else
                 $where['task.'.$k] = $v;
         }
         if ($needToDo == 'true')
@@ -68,17 +68,17 @@ class Task extends Model
                     ]);
                 })->field([
                     'task.*',
-                    't1.leader'				=>	'leader1',
-                    't1.title'				=>	'title1',
-                    't1.detail'				=>	'detail1',
-                    't2.leader'				=>	'leader2',
-                    't2.title'				=>	'title2',
-                    't2.detail'				=>	'detail2',
-                    't2.deptNo'				=>	'deptNo2',
-                    't3.serialNum'			=>	'serialNum',
-                    't3.detail'				=>	'detail3',
-                    't3.duty'				=>	'duty3',
-                    't3.leader'				=>	'leader3',
+                    't1.leader'             =>  'leader1',
+                    't1.title'              =>  'title1',
+                    't1.detail'             =>  'detail1',
+                    't2.leader'             =>  'leader2',
+                    't2.title'              =>  'title2',
+                    't2.detail'             =>  'detail2',
+                    't2.deptNo'             =>  'deptNo2',
+                    't3.serialNum'          =>  'serialNum',
+                    't3.detail'             =>  'detail3',
+                    't3.duty'               =>  'duty3',
+                    't3.leader'             =>  'leader3',
                     'task_data.deptNo'      =>  'tdDeptNo',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
@@ -118,17 +118,17 @@ class Task extends Model
                 ->where($where)
                 ->field([
                     'task.*',
-                    't1.leader'				=>	'leader1',
-                    't1.title'				=>	'title1',
-                    't1.detail'				=>	'detail1',
-                    't2.leader'				=>	'leader2',
-                    't2.title'				=>	'title2',
-                    't2.detail'				=>	'detail2',
-                    't2.deptNo'				=>	'deptNo2',
-                    't3.serialNum'			=>	'serialNum',
-                    't3.detail'				=>	'detail3',
-                    't3.duty'				=>	'duty3',
-                    't3.leader'				=>	'leader3',
+                    't1.leader'             =>  'leader1',
+                    't1.title'              =>  'title1',
+                    't1.detail'             =>  'detail1',
+                    't2.leader'             =>  'leader2',
+                    't2.title'              =>  'title2',
+                    't2.detail'             =>  'detail2',
+                    't2.deptNo'             =>  'deptNo2',
+                    't3.serialNum'          =>  'serialNum',
+                    't3.detail'             =>  'detail3',
+                    't3.duty'               =>  'duty3',
+                    't3.leader'             =>  'leader3',
                     'task_data.deptNo'      =>  'tdDeptNo',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
@@ -164,10 +164,7 @@ class Task extends Model
                 if (!$flag)
                 {
                     if (count($participateLevel) < 1) // 当用户不能看到所有任务,如果用户不能参与到任务的任何流程，则跳过该任务
-                    {
-                        $result['total']--;
                         continue;
-                    }
                 }
                 // 如果当前用户不能参与到该任务的流程中，则给其设置一个任意的不会和任务当前状态相等的值
                 $pLevel = isset($participateLevel['0']) ? $participateLevel['0'] : 0;   
@@ -177,13 +174,13 @@ class Task extends Model
                 
                 $taskList[] = $list[$k];
             }
-			if($ifStatus != ''){
-				foreach($taskList as $k2=>$v2){
-					if($ifStatus != $v2['getTaskStatusMsg']){
-						unset($taskList[$k2]);
-					}
-				}
-			}
+            if($ifStatus != ''){
+                foreach($taskList as $k2=>$v2){
+                    if($ifStatus != $v2['getTaskStatusMsg']){
+                        unset($taskList[$k2]);
+                    }
+                }
+            }
         }
 
         // 针对于当前登录用户  判断本月提交了多少个任务
@@ -218,12 +215,12 @@ class Task extends Model
             ->where(['task.id'=>$id])
             ->field([
                 'task.*',
-                't1.title'				=>	'title1',
-                't1.detail'				=>	'detail1',
-                't2.title'				=>	'title2',
-                't2.detail'				=>	'detail2',
-                't3.detail'				=>	'detail3',
-                't3.duty'				=>	'duty3',
+                't1.title'              =>  'title1',
+                't1.detail'             =>  'detail1',
+                't2.title'              =>  'title2',
+                't2.detail'             =>  'detail2',
+                't3.detail'             =>  'detail3',
+                't3.duty'               =>  'duty3',
             ])
             ->find();
         if($info) {
@@ -327,12 +324,12 @@ class Task extends Model
         $pId = Model('Task')->where(['id'=>$id])->value('pId');
         $maxLevel = Model('Process')->where('id', $pId)->value('level');
         $taskData = Model('TaskData')->where(['tId'=>$id])->find();
-		$currentLevel = $taskData['currentLevel'];
-		$taskLog = Model('taskLog')->where(['tId'=>$id,'tDId'=>$taskData['id']])->select();
-		$lastTaskLog = array_pop($taskLog);
+        $currentLevel = $taskData['currentLevel'];
+        $taskLog = Model('taskLog')->where(['tId'=>$id,'tDId'=>$taskData['id']])->select();
+        $lastTaskLog = array_pop($taskLog);
         if($lastTaskLog['type'] == 'reject'){
-			$status = 0;
-		}else if($taskData['status'] == 0){
+            $status = 0;
+        }else if($taskData['status'] == 0){
             $status = 3;
         }else if($currentLevel < '2'){
             $status = 1;
@@ -376,14 +373,13 @@ class Task extends Model
         return $msg;
     }
 
-    public function getTaskList($where, $all = false, $page = '1', $listRow = '10')
+    public function getTaskList($where, $all = false, $page = '1', $listRow = '10', $tDate='')
     {
-        $tDate = date('Ym', strtotime('-1 months'));
         $model = $this->alias('task')
             ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
             ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
             ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-            ->join('TaskData td', 'task.id=td.tid', 'left')
+            ->join('TaskData td', 'task.id=td.tId and td.tDate='.$tDate, 'left')
             ->join('TaskTasktype tt', 'task.id=tt.tId')
             ->join('RelevantDepartments rd', 'td.deptNo=rd.deptNo', 'left')
             ->field([
@@ -408,7 +404,7 @@ class Task extends Model
             $list = $model->group('id')->select();
         else
             $list = $model->page($page, $listRow)->group('id')->select();
-echo model('Task')->getLastSql();exit;
+
         // 按照需求拼凑填报内容
         foreach ($list as $k => $v) 
         {
@@ -417,12 +413,12 @@ echo model('Task')->getLastSql();exit;
             $list[$k]['analysis'] = '';
             if (preg_match_all('/^\d*$/', $v['deptNo']))
             {
-                $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$v['deptNo']])->order('tDate desc')->limit(1)->select();
+                $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$v['deptNo'], 'tDate'=>$tDate])->find();
                 if (!$content)
                     continue;
-                $list[$k]['complete'] = $content[0]['completeSituation'];
-                $list[$k]['problem'] = $content[0]['problemSuggestions'];
-                $list[$k]['analysis'] = $content[0]['analysis'];
+                $list[$k]['complete'] = $content['completeSituation'];
+                $list[$k]['problem'] = $content['problemSuggestions'];
+                $list[$k]['analysis'] = $content['analysis'];
             }
             else 
             {
@@ -430,15 +426,15 @@ echo model('Task')->getLastSql();exit;
                 $deptNos = model('RelevantDepartments')->where('relevantName', $v['deptNo'])->select();
                 foreach ($deptNos as $kk => $vv) 
                 {
-                    $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$vv['deptNo']])->order('tDate desc')->limit(1)->select();
+                    $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$vv['deptNo'], 'tDate'=>$tDate])->find();
                     if (!$content)
                         continue;
-                    if ($content[0]['completeSituation'] != '' || $content[0]['completeSituation'] != null)
-                        $list[$k]['complete'] .= $vv['deptName'] . '：' . $content[0]['completeSituation'] . '；';
-                    if ($content[0]['problemSuggestions'] != '' || $content[0]['problemSuggestions'] != null)
-                        $list[$k]['problem'] .= $vv['deptName'] . '：' . $content[0]['problemSuggestions'] . '；';
-                    if ($content[0]['analysis'] != '' || $content[0]['analysis'] != null)
-                        $list[$k]['analysis'] .= $vv['deptName'] . '：' . $content[0]['analysis'] . '；';
+                    if ($content['completeSituation'] != '' || $content['completeSituation'] != null)
+                        $list[$k]['complete'] .= $vv['deptName'] . '：' . $content['completeSituation'] . '；';
+                    if ($content['problemSuggestions'] != '' || $content['problemSuggestions'] != null)
+                        $list[$k]['problem'] .= $vv['deptName'] . '：' . $content['problemSuggestions'] . '；';
+                    if ($content['analysis'] != '' || $content['analysis'] != null)
+                        $list[$k]['analysis'] .= $vv['deptName'] . '：' . $content['analysis'] . '；';
                 }
             }
         }

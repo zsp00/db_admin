@@ -39,13 +39,13 @@ class TaskManage extends Common
             $this->error('流程错误！');
         }
     }
-	// 添加任务
-	public function addTask($taskInfo)
-	{
-		$task = array();
-		$timeLimit = explode('-',$taskInfo['timeLimit']);
-		if($timeLimit['1'] > '10'){
-		    if($timeLimit['1'] == '12'){
+    // 添加任务
+    public function addTask($taskInfo)
+    {
+        $task = array();
+        $timeLimit = explode('-',$taskInfo['timeLimit']);
+        if($timeLimit['1'] > '10'){
+            if($timeLimit['1'] == '12'){
                 $time = ($timeLimit['0'] + 1) . '01';
             }else{
                 $time = $timeLimit['0'] . ($timeLimit['1'] + 1);
@@ -53,25 +53,25 @@ class TaskManage extends Common
         }else{
             $time = $timeLimit['0'] .'0'.($timeLimit['1'] + 1);
         }
-		$task['timeLimit'] = $time;
-		$task['deptNo'] = $taskInfo['deptValue'];
-		$task['serialNumber'] = 0;
-		$task['content'] = $taskInfo['content'];
-		$task['releaseTime'] = time();
-		$task['level'] = $taskInfo['tasklevel'];
-		$task['pId'] = $taskInfo['processValue'];
-		$result = Model('Task')->insert($task);
+        $task['timeLimit'] = $time;
+        $task['deptNo'] = $taskInfo['deptValue'];
+        $task['serialNumber'] = 0;
+        $task['content'] = $taskInfo['content'];
+        $task['releaseTime'] = time();
+        $task['level'] = $taskInfo['tasklevel'];
+        $task['pId'] = $taskInfo['processValue'];
+        $result = Model('Task')->insert($task);
 
-		//获取最后一条插入的数据,插入task_tasktype表
+        //获取最后一条插入的数据,插入task_tasktype表
         $tId = Model('Task')->getLastInsID();
-		$taskType = ['tId'=>$tId,'typeId'=>$taskInfo['typeValue']];
-		$result2 = Model('TaskTasktype')->insert($taskType);
-		if($result && $result2){
-			$this->success('添加任务成功');
-		}else{
-			$this->error('添加失败');
-		}
-	}
+        $taskType = ['tId'=>$tId,'typeId'=>$taskInfo['typeValue']];
+        $result2 = Model('TaskTasktype')->insert($taskType);
+        if($result && $result2){
+            $this->success('添加任务成功');
+        }else{
+            $this->error('添加失败');
+        }
+    }
     //删除任务
     public function delTask($id)
     {
@@ -193,46 +193,53 @@ class TaskManage extends Common
         $previousMonth = date('Ym',strtotime("-2 month"));// 判断例如10月份的 填报情况
 
         if(is_array($id)){
-           $taskList = Model('Task')->where(['status' => ['in','1,2']])->select();
-           $taskDataAll = array();
-           $superviseRecordAll = array();
-           foreach($taskList as $k=>$v){
-               if(Model('TaskData')->where(['tId'=>$v['id'],'tDate'=>$tDate,'status'=>'1'])->find()){
-                   continue;
-               }
-               $allpId = explode(',', $v['pId']);
-               foreach($allpId as $k2 => $v2){
-                   $detNo = Model('Process')->where(['id'=>$v2])->value('deptNo');
-                   $taskDateInfo = [
-                       'tId' => $v['id'],
-                       'pId' => $v2,
-                       'deptNo' => $detNo,
-                       'currentLevel' => 1,
-                       'nextLevel' => 2,
-                       'tDate' => $tDate,
-                   ];
-                   //查看上个月有没有督办这个任务
-                   $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$detNo,'tId'=>$v['id'],'status'=>'0'])->find();
-                   if($taskDataPreMonth){
-                       $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
-                       $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
-                       $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
-                   }
+            $taskList = Model('Task')->where(['status' => ['in','1,2']])->select();
+            $taskDataAll = array();
+            $superviseRecordAll = array();
+            foreach($taskList as $k=>$v){
+                if(Model('TaskData')->where(['tId'=>$v['id'],'tDate'=>$tDate,'status'=>'1'])->find()){
+                    continue;
+                }
+                $allpId = explode(',', $v['pId']);
+                foreach($allpId as $k2 => $v2){
+                    $detNo = Model('Process')->where(['id'=>$v2])->value('deptNo');
+                    if($detNo == ''){
+                        continue;
+                    }
+                    $taskDateInfo = [
+                        'tId' => $v['id'],
+                        'pId' => $v2,
+                        'deptNo' => $detNo,
+                        'currentLevel' => 1,
+                        'nextLevel' => 2,
+                        'tDate' => $tDate,
+                    ];
+                    //查看上个月有没有督办这个任务
+                    $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$detNo,'tId'=>$v['id'],'status'=>'0'])->find();
+                    if($taskDataPreMonth){
+                        $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
+                        $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
+                        $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
+                    }else{
+                        $taskDateInfo['completeSituation'] = null;
+                        $taskDateInfo['problemSuggestions'] = null;
+                        $taskDateInfo['analysis'] = null;
+                    }
 //                   //查看督办记录里面有没有该记录
-                   $superviseRecord = Model('SuperviseRecord')->where(['SrdeptNo'=>$detNo,'srDate'=>$tDate,'tId'=>$v['id'],'srUser'=>$userInfo['EMP_NO']])->find();
-                   if(!$superviseRecord){
-                       $SupRecord = [
-                           'srUser' => $userInfo['EMP_NO'],
-                           'tId' => $v['id'],
-                           'srDeptNo' => $detNo,
-                           'srDate' => $tDate,
-                           'srTime' => time()
-                       ];
-                       $superviseRecordAll[] = $SupRecord;
-                   }
-                   $taskDataAll[] = $taskDateInfo;
-               }
-           }
+                    $superviseRecord = Model('SuperviseRecord')->where(['SrdeptNo'=>$detNo,'srDate'=>$tDate,'tId'=>$v['id'],'srUser'=>$userInfo['EMP_NO']])->find();
+                    if(!$superviseRecord){
+                        $SupRecord = [
+                            'srUser' => $userInfo['EMP_NO'],
+                            'tId' => $v['id'],
+                            'srDeptNo' => $detNo,
+                            'srDate' => $tDate,
+                            'srTime' => time()
+                        ];
+                        $superviseRecordAll[] = $SupRecord;
+                    }
+                    $taskDataAll[] = $taskDateInfo;
+                }
+            }
             $result =Model('TaskData')->insertAll($taskDataAll);
             if(!empty($superviseRecordAll)){
                 $result2 = Model('SuperviseRecord')->insertAll($superviseRecordAll);
@@ -262,6 +269,10 @@ class TaskManage extends Common
                     $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
                     $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
                     $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
+                }else{
+                    $taskDateInfo['completeSituation'] = null;
+                    $taskDateInfo['problemSuggestions'] = null;
+                    $taskDateInfo['analysis'] = null;
                 }
                 $result =Model('TaskData')->insert($taskDateInfo);
                 //查看有没有督办记录
@@ -286,6 +297,10 @@ class TaskManage extends Common
                 $this->error('任务督办失败！');
             }
         }
+    }
+    public function ceshi()
+    {
+        $result = Model('Task')->superviseChat('这是测试文本');
     }
 }
 
