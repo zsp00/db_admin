@@ -20,7 +20,6 @@ class Task extends Common
         }
         $OrgDept = new OrgDept();
         $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
-        //$deptNo = $userInfo['DEPTNO'];
 
         // 检索条件
         $Task = new \app\common\model\Task();
@@ -48,7 +47,7 @@ class Task extends Common
             $map['deptNo'] = $dept[1];
 
         $tDate = date('Ym', strtotime('-1 months'));
-        $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
+        $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo, $flag);
 
         if (!$result)
             $this->error('暂无任务');
@@ -487,7 +486,7 @@ class Task extends Common
         $list = model('Task')->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
             ->where(['task.status'=>['in', '1,2']])
             ->where(function ($query) use ($deptNo, $empNo) {
                 $query->where([
@@ -592,7 +591,7 @@ class Task extends Common
         if ($dept !== [])      // 部门
             $where['task_data.deptNo'] = $dept[1];
 
-        $tDate = date('Ym');
+        $tDate = date('Ym', strtotime('-1 months'));
 
         if ($needToDo == true)
         {
@@ -602,7 +601,7 @@ class Task extends Common
                 ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
                 ->where($where)
                 ->where(function ($query) use ($deptNo, $empNo) {
                     $query->where([

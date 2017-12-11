@@ -23,7 +23,7 @@ class Task extends Model
     ];
     protected $_participateLevel = null;
 
-    public function getList($map, $tDate, $page = 1, $listRow = 20, $needToDo = true) {
+    public function getList($map, $tDate, $page = 1, $listRow = 20, $needToDo = true, $flag = false) {
         $result = [
             'data'  =>  null,
             'total' =>  0,
@@ -54,7 +54,7 @@ class Task extends Model
                 ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
                 ->where($where)
                 ->where(function ($query) use ($deptNo, $empNo) {
                     $query->where([
@@ -93,7 +93,7 @@ class Task extends Model
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task.pId=process_data.pId', 'left')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
                 ->where($where)
                 ->where(function ($query) use ($deptNo, $empNo) {
                     $query->where([
@@ -161,14 +161,20 @@ class Task extends Model
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', $v['typeId']]])->column('typeName'));
                 $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
-                if (count($participateLevel) < 1)   // 如果用户不能参与到任务的任何流程，则跳过该任务
-                    continue;
-
-                $list[$k]['getStepIds'] = $participateLevel['0'];
+                if (!$flag)
+                {
+                    if (count($participateLevel) < 1) // 当用户不能看到所有任务,如果用户不能参与到任务的任何流程，则跳过该任务
+                    {
+                        $result['total']--;
+                        continue;
+                    }
+                }
+                // 如果当前用户不能参与到该任务的流程中，则给其设置一个任意的不会和任务当前状态相等的值
+                $pLevel = isset($participateLevel['0']) ? $participateLevel['0'] : 0;   
+                $list[$k]['getStepIds'] = $pLevel;
                 $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
 
-                if ($v['taskDataStatus'] >= $participateLevel[0])    // 针对于当前登录用户  判断本月提交了多少个任务
-                    $commitNum++;
+                
                 $taskList[] = $list[$k];
             }
 			if($ifStatus != ''){
@@ -180,7 +186,24 @@ class Task extends Model
 			}
         }
 
-        $result['commitNum'] = $commitNum;
+        // 针对于当前登录用户  判断本月提交了多少个任务
+        $result['commitNum'] = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
+                ->where($where)
+                ->where(function ($query) use ($deptNo, $empNo) {
+                    $query->where([
+                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                    ])->whereOr([
+                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                    ]);
+                })->where(function ($query) use ($empNo) {
+                    $query->where([
+                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                    ]);
+                })->group('task_data.id')->count();
+
         $result['data'] = $taskList;
         return $result;
     }
@@ -356,12 +379,12 @@ class Task extends Model
 
     public function getTaskList($where, $all = false, $page = '1', $listRow = '10')
     {
-        $tDate = date('Ym');
+        $tDate = date('Ym', strtotime('-1 months'));
         $model = $this->alias('task')
             ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
             ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
             ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-            ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
+            ->join('TaskData td', 'task.id=td.tid', 'left')
             ->join('TaskTasktype tt', 'task.id =tt.tId')
             ->join('RelevantDepartments rd', 'td.deptNo=rd.deptNo', 'left')
             ->field([
