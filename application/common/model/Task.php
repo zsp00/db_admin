@@ -376,16 +376,50 @@ class Task extends Model
                 't3.serialNum'          =>  'serialNum',
                 't3.detail'             =>  'detail3',
                 't3.duty'               =>  'duty3',
-                't3.leader'             =>  'leader3',
-                '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.completeSituation SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.completeSituation SEPARATOR "；") END)'    =>  'complete',
-                '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.problemSuggestions SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.problemSuggestions SEPARATOR "；") END)'  =>  'problem',
-                '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.analysis SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.analysis SEPARATOR "；") END)'  =>  'analysis'
+                't3.leader'             =>  'leader3'
+                // '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.completeSituation SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.completeSituation SEPARATOR "；") END)'    =>  'complete',
+                // '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.problemSuggestions SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.problemSuggestions SEPARATOR "；") END)'  =>  'problem',
+                // '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.analysis SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.analysis SEPARATOR "；") END)'  =>  'analysis'
             ])->where($where);
 
         if ($all)
             $list = $model->group('id')->select();
         else
             $list = $model->page($page, $listRow)->group('id')->select();
+
+        // 按照需求拼凑填报内容
+        foreach ($list as $k => $v) 
+        {
+            $list[$k]['complete'] = '';
+            $list[$k]['problem'] = '';
+            $list[$k]['analysis'] = '';
+            if (preg_match_all('/^\d*$/', $v['deptNo']))
+            {
+                $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$v['deptNo']])->order('tDate desc')->limit(1)->select();
+                if (!$content)
+                    continue;
+                $list[$k]['complete'] = $content[0]['completeSituation'];
+                $list[$k]['problem'] = $content[0]['problemSuggestions'];
+                $list[$k]['analysis'] = $content[0]['analysis'];
+            }
+            else 
+            {
+                // 如果部门涉及到多部门，分别获取各部门的填报内容
+                $deptNos = model('RelevantDepartments')->where('relevantName', $v['deptNo'])->select();
+                foreach ($deptNos as $kk => $vv) 
+                {
+                    $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$vv['deptNo']])->order('tDate desc')->limit(1)->select();
+                    if (!$content)
+                        continue;
+                    if ($content[0]['completeSituation'] != '' || $content[0]['completeSituation'] != null)
+                        $list[$k]['complete'] .= $vv['deptName'] . '：' . $content[0]['completeSituation'] . '；';
+                    if ($content[0]['problemSuggestions'] != '' || $content[0]['problemSuggestions'] != null)
+                        $list[$k]['problem'] .= $vv['deptName'] . '：' . $content[0]['problemSuggestions'] . '；';
+                    if ($content[0]['analysis'] != '' || $content[0]['analysis'] != null)
+                        $list[$k]['analysis'] .= $vv['deptName'] . '：' . $content[0]['analysis'] . '；';
+                }
+            }
+        }
 
         return $list;
     }

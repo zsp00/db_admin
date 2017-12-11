@@ -32,6 +32,9 @@ class UserEmp extends \app\common\model\User implements UserInterface
 
     public function exists($id,$field = 'EMPID'){
         $info = Model('UserEmp')->where([$field=>$id])->find();
+        // 检查该用户是否外勤到别的部门,如果外勤到了别的部门，将部门编号改为当前外勤的部门
+        if ($deptNo = Model('Assist')->where(['EMP_NO'=>$info['EMP_NO']])->value('DEPT_NO'))
+            $info['DEPTNO'] = $deptNo;
         if(!$info){
             $this->error = '未在本地系统中找到该用户！(1)';
             return false;
@@ -149,10 +152,12 @@ class UserEmp extends \app\common\model\User implements UserInterface
     }
 
 
-    //根据empNo获取所有部门
+    //根据empNo获取所有部门(包括外勤部门)
     public function getDeptNosByEmpNo($empNo){
         $list = [];
         $deptNo = $this->where(['EMP_NO'=>$empNo])->value('DEPTNO');
+        if ($assist = Model('Assist')->where(['EMP_NO'=>$empNo])->value('DEPT_NO'))
+            return array_merge(Model('OrgDept')->getParentIds($deptNo), Model('OrgDept')->getParentIds($assist));
         return Model('OrgDept')->getParentIds($deptNo);
 	}
 

@@ -46,7 +46,7 @@ class Task extends Common
         if ($dept !== [])      // 部门
             $map['deptNo'] = $dept[1];
 
-        $tDate = date('Ym');
+        $tDate = date('Ym', strtotime('-1 months'));
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo);
 
         if (!$result)
