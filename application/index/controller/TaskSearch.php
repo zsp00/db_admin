@@ -16,7 +16,15 @@ class TaskSearch extends Common
         if ($condition->deptValue != [])
             $where['task.deptNo'] = $condition->deptValue[1];
         if ($condition->timeLimit != '')
-            $where['task.timeLimit'] = date('Ym', strtotime($condition->timeLimit));
+        {
+        	$month = date('m', strtotime($condition->timeLimit));
+            $where['td.tDate'] = date('Ym', strtotime($condition->timeLimit));
+        }
+        else 
+        {
+        	$month = date('m', strtotime('-2 months'));
+        	$where['td.tDate'] = date('Ym', strtotime('-2 months'));
+        }
         if ($condition->leaderFirst != '')
             $where['t1.leader'] = $condition->leaderFirst;
         if ($condition->leaderSecond != '')
@@ -35,7 +43,7 @@ class TaskSearch extends Common
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
 			->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
-            ->join('TaskData td', 'task.id=td.tid and td.tDate=(select max(tDate) from d_task_data where tId=task.id)', 'left')
+            ->join('TaskData td', 'task.id=td.tid', 'left')
             ->join('TaskTasktype tt', 'task.id=tt.tId')->where($where)->group('task.id')->count();
 
 		foreach ($list as $k => $v)   
@@ -55,7 +63,8 @@ class TaskSearch extends Common
 			'list'		=>	$list,
 			'page'		=>	(int)$page,
 			'listRow'	=>	(int)$listRow,
-			'total'		=>	$total
+			'total'		=>	$total,
+			'month'		=>	$month
 		);
 
 		$this->success('', '', $result);
@@ -74,7 +83,15 @@ class TaskSearch extends Common
         if ($condition->deptValue != [])
             $where['task.deptNo'] = $condition->deptValue[1];
         if ($condition->timeLimit != '')
-            $where['task_data.tDate'] = date('Ym', strtotime($condition->timeLimit));
+        {
+        	$month = date('m', strtotime($condition->timeLimit));
+            $where['td.tDate'] = date('Ym', strtotime($condition->timeLimit));
+        }
+        else 
+        {
+        	$month = date('m', strtotime('-2 months'));
+        	$where['td.tDate'] = date('Ym', strtotime('-2 months'));
+        }
         if ($condition->leaderFirst != '')
             $where['t1.leader'] = $condition->leaderFirst;
         if ($condition->leaderSecond != '')
@@ -112,9 +129,9 @@ class TaskSearch extends Common
 	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(11, 2, '责任部室、二级单位目标任务');
 	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(13, 2, '年度实施计划');
 	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(13, 3, '2017年');
-	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(14, 3, '完成情况');
-	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(15, 3, '问题建议');
-	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(16, 3, '原因分析');
+	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(14, 3, $month . '月完成情况');
+	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(15, 3, $month . '月问题建议');
+	    	$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(16, 3, $month . '月原因分析');
 
 	    	// 定义几个合并单元格要用到的变量
 	    	$serialNum = $title1 = $title2 = $detail2 = $detail3 = $duty3  = $duty = '';
