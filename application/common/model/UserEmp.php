@@ -43,7 +43,7 @@ class UserEmp extends \app\common\model\User implements UserInterface
             return $info;
         }
     }
-    
+
     //登录
     protected function doLogin($info,$remember=false){
         if($remember){
@@ -53,7 +53,7 @@ class UserEmp extends \app\common\model\User implements UserInterface
             $remember = false;
             $cookieTime = $this->noRemember;
         }
-        
+
         //用户的岗位放到session中
         session('member',$info);
         cookie('member',
@@ -93,7 +93,6 @@ class UserEmp extends \app\common\model\User implements UserInterface
         cookie('member',null);
         session('member',null);
 		Cookie::set('token_'.Config::get('uams.appNo'),null,['domain'=>Config::get('cookie.basedomain')]);
-        return true;
     }
 
     public function getUserListByDeptNo($deptNo){
@@ -161,7 +160,7 @@ class UserEmp extends \app\common\model\User implements UserInterface
         if ($assist = Model('Assist')->where(['EMP_NO'=>$empNo])->value('DEPT_NO'))
             return array_merge(Model('OrgDept')->getParentIds($deptNo), Model('OrgDept')->getParentIds($assist));
         return Model('OrgDept')->getParentIds($deptNo);
-	}
+    }
 
     public function getAccess($empNo){
         //获取这个人身上的所有标签
