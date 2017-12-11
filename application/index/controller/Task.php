@@ -478,16 +478,15 @@ class Task extends Common
     // 第三级用户批量提交任务
     public function commitAll()
     {
-        $tDate = $tDate = date('Ym');
+        $tDate = $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-        dump($deptNo);
         $list = model('Task')->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
             ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
-            ->where(['task.status'=>['in', '1,2']])
+            ->where(['task.status'=>['in', '1,2'], 'task_data.deptNo'=>$deptNo])
             ->where(function ($query) use ($deptNo, $empNo) {
                 $query->where([
                     'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
@@ -504,6 +503,7 @@ class Task extends Common
                 'task_data.currentLevel'    =>  'taskDataStatus',
                 'task_data.nextLevel'       =>  'taskDataNextStatus'
             ])->group('task.id')->select();
+        // echo model('Task')->getLastSql();exit;
         $result = true;
         foreach ($list as $k => $v)
         {
@@ -546,8 +546,8 @@ class Task extends Common
         $countAll = model('Task')->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
-            ->where(['task.status'=>['in', '1,2']])->group('task_data.id')->count();
-
+            ->where(['task.status'=>['in', '1,2'], 'task_data.deptNo'=>$deptNo])->group('task_data.id')->count();
+// echo model('Task')->getLastSql();exit;
         if ($countDoing == $countAll)
             $this->success();
         elseif ($countDoing > $countAll)
