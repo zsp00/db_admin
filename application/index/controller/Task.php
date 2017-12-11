@@ -172,18 +172,21 @@ class Task extends Common
      * @param  int $nextLevel    当前流程的下一步
      * @return array               提交结果
      */
-    public function submits($id, $pId, $currentLevel, $nextLevel)
+    public function submits($id, $pId, $currentLevel, $nextLevel, $completeSituation='', $problemSuggestions='', $analysis='')
     {
+        $TaskDataModel = new TaskData();
+        $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
+        if(!$taskDataInfo){
+            $this->error('该条记录未找到');
+        }
+        if($taskDataInfo['completeSituation'] != $completeSituation || $taskDataInfo['problemSuggestions'] != $problemSuggestions || $taskDataInfo['analysis'] != $analysis){
+            $this->error('请先保存！');
+        }
         //获取用户的信息
         $userInfo = getUserInfo();
         $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-        $TaskDataModel = new TaskData();
-        $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
-        if(!$taskDataInfo)
-            $this->error('该条记录未找到');
         // 获取流程总的等级
         $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
-
         //如果部门办事员和主任都在流程1  2 级那么跳过2级到3级
         $identitys = Model('ProcessData')->getStepIds($taskDataInfo['pId']);
         if(count($identitys) > 1 && ($identitys['0'] == 1 && $identitys['1'] == 2)){
