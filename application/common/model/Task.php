@@ -263,7 +263,6 @@ class Task extends Model
                 $taskDataList[$k]['steps'] = $steps;
                 // 步骤条第一步，显示发起督办任务信息
                 $superviseRecord = model('SuperviseRecord')->where(['tId'=>$id, 'srDeptNo'=>$tdDeptNo, 'srDate'=>$v['tDate']])->find();
-                // echo model('SuperviseRecord')->getLastSql();exit;
                 $stepFirst['fullName'] = getAllName('person', $superviseRecord['srUser'], true);  // 名字到公司的组织结构
                 $stepFirst['name'] = substr($stepFirst['fullName'], strrpos($stepFirst['fullName'], '/') + 1);   // 名字
                 $stepFirst['text'] = '于 ' . $superviseRecord['srTime'] . ' 对该任务发起了督办';
@@ -385,7 +384,7 @@ class Task extends Model
             ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
             ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
             ->join('TaskData td', 'task.id=td.tid', 'left')
-            ->join('TaskTasktype tt', 'task.id =tt.tId')
+            ->join('TaskTasktype tt', 'task.id=tt.tId')
             ->join('RelevantDepartments rd', 'td.deptNo=rd.deptNo', 'left')
             ->field([
                 'task.*',
@@ -409,7 +408,7 @@ class Task extends Model
             $list = $model->group('id')->select();
         else
             $list = $model->page($page, $listRow)->group('id')->select();
-
+echo model('Task')->getLastSql();exit;
         // 按照需求拼凑填报内容
         foreach ($list as $k => $v) 
         {

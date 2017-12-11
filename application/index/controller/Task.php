@@ -358,7 +358,7 @@ class Task extends Common
     /*
      * 获取日志
      */
-    public function getLogs($tId,$mouth)
+    public function getLogs($tId, $mouth, $deptNo)
     {
         //根据登录的用户查询它的三级组织id
         $userInfo = getUserInfo();
@@ -366,7 +366,7 @@ class Task extends Common
 
         $year = date('Y',time());
         $tDate =  $year . $mouth;
-        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate])->value('id');
+        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate, 'deptNo'=>$deptNo])->value('id');
         $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
         if($result){
             foreach($result as $k=>$v){
@@ -541,7 +541,7 @@ class Task extends Common
      */
     public function checkCount($countDoing)
     {
-        $tDate = $tDate = date('Ym');
+        $tDate = $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
