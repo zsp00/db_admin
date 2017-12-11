@@ -514,14 +514,14 @@ class Task extends Model
         if($deptNo == ''){
             //查询所有的不重复的部门下面的所有的人获取他的userId
             $AlldeptNo = array_unique(Model('TaskData')->column('deptNo'));
+            $empNoAll = [];
             foreach($AlldeptNo as $k=>$v){
-                $empNoAll = array();
                 $empNo= Model('UserEmp')->where(['DEPTNO'=>$v])->column('EMP_NO');
                 if(!$empNo){
-                    return false;
+                    continue;
                 }
                 foreach($empNo as $k2=>$v2){
-                    $empNoAll = $v2;
+                    $empNoAll[] = $v2;
                 }
                 //外勤人员的压入
                 $fieldStaff = Model('Assist')->where(['DEPT_NO'=>$v])->column('EMP_NO');
@@ -532,8 +532,11 @@ class Task extends Model
                 }
             }
         }else{
+            $empNoAll = array();
             foreach($deptNo as $k=>$v){
-                $empNoAll = array();
+                if($v == ''){
+                    continue;
+                }
                 $empNo= Model('UserEmp')->where(['DEPTNO'=>$v])->column('EMP_NO');
                 if(!$empNo){
                     return false;
@@ -550,9 +553,8 @@ class Task extends Model
                 }
             }
         }
-
         $userId = Model('Task')->getUserId($empNoAll);
-        //array_push($userId,'37162');//李天航的userId
+        array_push($userId,'37162');//李天航的userId
         $pushChat= Model('Task')->weChatPush($userId,$setText);
     }
 }
