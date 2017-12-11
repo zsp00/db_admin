@@ -230,6 +230,7 @@ return [
         'httponly'  => '',
         // 是否使用 setcookie
         'setcookie' => true,
+        'basedomain' => '.bjdt.com'
     ],
 
     //分页配置
