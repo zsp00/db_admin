@@ -116,7 +116,7 @@ class TaskManage extends Common
             else
                 $where['td.status'] = null;
         }
-        $tDate = date('Ym', time());
+        $tDate = date('Ym',strtotime("-1 month"));
         //督办的页面显示查询
         $result = Model('Task')
             ->alias('t')
