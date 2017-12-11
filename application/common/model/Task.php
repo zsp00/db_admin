@@ -408,9 +408,10 @@ class Task extends Model
     }
 
     /**
+     * $empNo 可以【】数组可以字符串
      * 获取需要发送的userId
      * 通过统一账号（用户的EMP_NO查询用户微信端的useId(uams库里面的Person表)）
-     *return userId;
+     *return userId = 【】;
      */
     public function getUserId($empNo)
     {
@@ -434,6 +435,11 @@ class Task extends Model
 
     }
 
+    /**
+     * $userId =【】 二维数组或者string 用户的id
+     * $setText = string 推送的信息
+     * 微信推送消息的方法
+     */
     public function weChatPush($userId,$setText)
     {
         $agentId = '1000005';
@@ -446,16 +452,47 @@ class Task extends Model
         $message->send($agentId);
     }
 
-
-    public function testPush()
+    /**
+     *  $setText = string 为你要推送的消息的内容
+     *  $deptNo = 【】二维数组 为空默认为全部督办所有任务
+     *   全部督办任务触发该方法
+     */
+    public function superviseChat($setText,$deptNo='')
     {
-        $agentId = '1000005';
-        $access_token = $this->getAccessToken();
-        $message = new Message($access_token);
-        $user= new Users($access_token);
-        //$message->setToUser('37162');
-        $message->setToParty(['2957']);
-        $message->setText('这是测试部门发送');
-        $message->send($agentId);
+        if($deptNo == ''){
+            //查询所有的不重复的部门下面的所有的人获取他的userId
+            $AlldeptNo = array_unique(Model('TaskData')->column('deptNo'));
+            foreach($AlldeptNo as $k=>$v){
+                $empNo= Model('UserEmp')->where(['DEPTNO'=>$v])->column('EMP_NO');
+                foreach($empNo as $k2=>$v2){
+                    $empNoAll[] = $v2;
+                }
+                //外勤人员的压入
+                $fieldStaff = Model('Assist')->where(['DEPT_NO'=>$v])->column('EMP_NO');
+                if($fieldStaff){
+                    foreach($fieldStaff as $k3=>$v3){
+                        array_push($empNoAll,$v3);
+                    }
+                }
+            }
+        }else{
+            foreach($deptNo as $k=>$v){
+                $empNo= Model('UserEmp')->where(['DEPTNO'=>$v])->column('EMP_NO');
+                foreach($empNo as $k2=>$v2){
+                    $empNoAll[] = $v2;
+                }
+                //外勤人员的压入
+                $fieldStaff = Model('Assist')->where(['DEPT_NO'=>$v])->column('EMP_NO');
+                if($fieldStaff){
+                    foreach($fieldStaff as $k3=>$v3){
+                        array_push($empNoAll,$v3);
+                    }
+                }
+            }
+        }
+
+        $userId = Model('Task')->getUserId($empNoAll);
+        //array_push($userId,'37162');//李天航的userId
+        $pushChat= Model('Task')->weChatPush($userId,$setText);
     }
 }

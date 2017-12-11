@@ -189,11 +189,9 @@ class TaskManage extends Common
     public function taskSupervice($id)
     {
         $userInfo = getUserInfo();
-        if(empty($id)){
-            $this->error('请选择督办任务！');
-        }
-        $tDate = date('Ym',time());
-        $previousMonth = date('Ym',strtotime("-1 month"));
+        $tDate = date('Ym',strtotime("-1 month"));  //开始督办上个月的也就是11月份的
+        $previousMonth = date('Ym',strtotime("-2 month"));// 判断例如10月份的 填报情况
+
         if(is_array($id)){
            $taskList = Model('Task')->where(['status' => ['in','1,2']])->select();
            $taskDataAll = array();
@@ -202,39 +200,31 @@ class TaskManage extends Common
                if(Model('TaskData')->where(['tId'=>$v['id'],'tDate'=>$tDate,'status'=>'1'])->find()){
                    continue;
                }
-               $pId = Model('Task')->where(['id'=>$v['id']])->value('pId');
-               $deptNo = Model('Task')->where(['id'=>$v['id']])->value('deptNo');
-               //正则匹配是组织id还是各部室各部门
-               $rule = '/^\d*$/';
-               $ruleResult = preg_match($rule, $deptNo, $matches);
-               if($ruleResult){
-                   $deptNo = [$deptNo];
-               }else{
-                   $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
-               }
-               foreach($deptNo as $k2 => $v2){
+               $allpId = explode(',', $v['pId']);
+               foreach($allpId as $k2 => $v2){
+                   $detNo = Model('Process')->where(['id'=>$v2])->value('deptNo');
                    $taskDateInfo = [
                        'tId' => $v['id'],
-                       'pId' => $pId,
-                       'deptNo' => $v2,
+                       'pId' => $v2,
+                       'deptNo' => $detNo,
                        'currentLevel' => 1,
                        'nextLevel' => 2,
                        'tDate' => $tDate,
                    ];
                    //查看上个月有没有督办这个任务
-                   $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$v2,'tId'=>$v['id'],'status'=>'0'])->find();
+                   $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$detNo,'tId'=>$v['id'],'status'=>'0'])->find();
                    if($taskDataPreMonth){
                        $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
                        $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
                        $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
                    }
 //                   //查看督办记录里面有没有该记录
-                   $superviseRecord = Model('SuperviseRecord')->where(['SrdeptNo'=>$v2,'srDate'=>$tDate,'tId'=>$v['id'],'srUser'=>$userInfo['EMP_NO']])->find();
+                   $superviseRecord = Model('SuperviseRecord')->where(['SrdeptNo'=>$detNo,'srDate'=>$tDate,'tId'=>$v['id'],'srUser'=>$userInfo['EMP_NO']])->find();
                    if(!$superviseRecord){
                        $SupRecord = [
                            'srUser' => $userInfo['EMP_NO'],
                            'tId' => $v['id'],
-                           'srDeptNo' => $v2,
+                           'srDeptNo' => $detNo,
                            'srDate' => $tDate,
                            'srTime' => time()
                        ];
@@ -248,75 +238,54 @@ class TaskManage extends Common
                 $result2 = Model('SuperviseRecord')->insertAll($superviseRecordAll);
             }
             if($result){
-                $this->superviseChat(); //全部插入成功执行微信通知
-                $this->success('任务全部督办成功！');
+                Model('Task')->superviseChat($setText='任务开始督办请您尽快填报！'); //全部插入成功执行微信通知
+                $this->success('督办任务督办成功！');
             }else{
                 $this->error('任务督办失败！');
             }
         }else{
             $pId = Model('Task')->where(['id'=>$id])->value('pId');
-            //正则匹配是组织id还是各部室各部门
-            $deptNo = Model('Task')->where(['id'=>$id])->value('deptNo');
-            $rule = '/^\d*$/';
-            $ruleResult = preg_match($rule, $deptNo, $matches);
-            if($ruleResult){
-                $deptNo = [$deptNo];
-            }else{
-                $deptNo = Model('RelevantDepartments')->where('relevantName', 'in', str_replace('、', ',', $deptNo))->column('deptNo');
-            }
-            //数据处理保存数据库
-            foreach($deptNo as $k => $v){
+            $allpId = explode(',',$pId);
+            foreach($allpId as $k=>$v){
+                $detNo = Model('Process')->where(['id'=>$v])->value('deptNo');
                 $taskDateInfo = [
                     'tId' => $id,
-                    'pId' => $pId,
-                    'deptNo' => $v,
+                    'pId' => $v,
+                    'deptNo' => $detNo,
                     'currentLevel' => 1,
                     'nextLevel' => 2,
-                    'tDate' => $tDate,
+                    'tDate' => $tDate
                 ];
                 //查看上个月有没有督办这个任务
-                $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$v,'tId'=>$id,'status'=>'0'])->find();
+                $taskDataPreMonth = Model('TaskData')->where(['tDate'=>$previousMonth,'deptNo'=>$detNo,'tId'=>$id,'status'=>'0'])->find();
                 if($taskDataPreMonth){
                     $taskDateInfo['completeSituation'] = $taskDataPreMonth['completeSituation'];
                     $taskDateInfo['problemSuggestions'] = $taskDataPreMonth['problemSuggestions'];
                     $taskDateInfo['analysis'] = $taskDataPreMonth['analysis'];
                 }
                 $result =Model('TaskData')->insert($taskDateInfo);
-                $superviseRecord = Model('SuperviseRecord')->where(['SrdeptNo'=>$v,'srDate'=>$tDate,'tId'=>$id,'srUser'=>$userInfo['EMP_NO']])->find();
-                if($superviseRecord){
+                //查看有没有督办记录
+                $superviseRecord = Model('SuperviseRecord')->where(['SrdeptNo'=>$detNo,'srDate'=>$tDate,'tId'=>$id,'srUser'=>$userInfo['EMP_NO']])->find();
+                if(!$superviseRecord){
                     $SupRecord = [
                         'srUser' => $userInfo['EMP_NO'],
                         'tId' => $id,
-                        'srDeptNo' => $v,
+                        'srDeptNo' => $detNo,
                         'srDate' => $tDate,
                         'srTime' => time()
                     ];
                     $result2 = Model('SuperviseRecord')->insert($SupRecord);
                 }
+                $deptNoAll[] = $detNo;
             }
+            //数据处理保存数据库
             if($result){
+                Model('Task')->superviseChat($setText='任务开始督办请您尽快填报！',$deptNoAll);
                 $this->success('任务督办成功！');
             }else{
                 $this->error('任务督办失败！');
             }
         }
-    }
-
-    //全部督办触发该方法，向用户推送消息
-    public function superviseChat()
-    {
-        //查询所有的不重复的部门下面的所有的人获取他的userId
-        $AlldeptNo = array_unique(Model('TaskData')->column('deptNo'));
-        foreach($AlldeptNo as $k=>$v){
-            $empNo= Model('UserEmp')->where(['DEPTNO'=>$v])->column('EMP_NO');
-            foreach($empNo as $k2=>$v2){
-                $empNoAll[] = $v2;
-            }
-        }
-        $userId = Model('Task')->getUserId($empNoAll);
-        array_push($userId,'37162');
-
-        $pushChat= Model('Task')->weChatPush($userId,'督办任务被下发请您开始填报');
     }
 }
 

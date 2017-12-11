@@ -20,6 +20,7 @@ class Task extends Common
         }
         $OrgDept = new OrgDept();
         $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
+        //$deptNo = $userInfo['DEPTNO'];
 
         // 检索条件
         $Task = new \app\common\model\Task();
@@ -151,9 +152,9 @@ class Task extends Common
         if ($updateDataStatus === false) {
             $this->error($TaskDataModel->getError());
         }
-        // if($updateDataStatus === 0 && $taskUpdate === 0){
-        //     $this->error('您没做任何修改！');
-        // }
+         if($updateDataStatus === 0 && $taskUpdate === 0){
+             $this->error('您没做任何修改！');
+         }
         $TaskLogModel = new TaskLog();
         $result = $TaskLogModel->addLog($taskInfo['id'],$taskDataInfo['id'],'edit',$userInfo['EMP_NO'],$deptNo,$update,$taskDataInfo->toArray());
 
@@ -205,9 +206,10 @@ class Task extends Common
         //提交完成后，向这级的人微信推送消息
         $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
         $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
-        $userId = Model('Task')->getUserId($empNoPushChat);
-        $pushChat= Model('Task')->weChatPush($userId,'督办任务被提交请您查看');
-
+        if($empNoPushChat){
+            $userId = Model('Task')->getUserId($empNoPushChat);
+            $pushChat= Model('Task')->weChatPush($userId,'您有新的督办任务被提交，请您查看处理！');
+        }
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -278,11 +280,18 @@ class Task extends Common
         }
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
         //驳回完成后，向这级的人微信推送消息
+        //另外2级驳回到1级（1级一般为部门）
         $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
-        $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
-        $userId = Model('Task')->getUserId($empNoPushChat);
-        $pushChat= Model('Task')->weChatPush($userId,'督办任务被驳回请您查看');
-
+        if($currentLevel == '1'){
+            $deptNoAll[] = Model('TaskData')->where(['id'=>$id])->value('deptNo');
+            Model('Task')->superviseChat($setText="1督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason ,$deptNoAll);
+        }else{
+            $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
+            if($empNoPushChat){
+                $userId = Model('Task')->getUserId($empNoPushChat);
+                $pushChat= Model('Task')->weChatPush($userId,"2-6督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason);
+            }
+        }
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -474,7 +483,7 @@ class Task extends Common
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-
+        dump($deptNo);
         $list = model('Task')->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
@@ -496,7 +505,6 @@ class Task extends Common
                 'task_data.currentLevel'    =>  'taskDataStatus',
                 'task_data.nextLevel'       =>  'taskDataNextStatus'
             ])->group('task.id')->select();
-
         $result = true;
         foreach ($list as $k => $v)
         {
@@ -510,15 +518,19 @@ class Task extends Common
                 $result = false && $result;
         }
         //提交完成后，向这级的人微信推送消息
-        $currentLevel = Model('TaskData')->where(['id'=>$list[0]['id']])->value('currentLevel');
-        $empNoPushChat = Model('ProcessData')->where(['pId'=>$list[0]['pId'],'levelNo'=>$currentLevel])->value('empNos');
-        $userId = Model('Task')->getUserId($empNoPushChat);
-        $pushChat= Model('Task')->weChatPush($userId,'督办任务被提交请您查看');
-
-        if ($result)
+        $listAll = count($list);
+        if($listAll > 1){
+            $currentLevel = Model('TaskData')->where(['tId'=>$list[0]['id']])->value('currentLevel');
+            $empNoPushChat = Model('ProcessData')->where(['pId'=>$list[0]['pId'],'levelNo'=>$currentLevel])->value('empNos');
+            $userId = Model('Task')->getUserId($empNoPushChat);
+            $pushChat= Model('Task')->weChatPush($userId,'这是全部提交督办任务被提交请您查看');
+        }
+        if ($result){
             $this->success('全部提交成功！');
-        else
+        }else{
             $this->error();
+        }
+
     }
 
     /**
