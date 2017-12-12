@@ -6,6 +6,11 @@ class TaskSearch extends Common
 	public function getTaskList($condition, $page = '1', $listRow = '10')
 	{
 		$condition = json_decode($condition);
+
+		$userInfo = getUserInfo();
+        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $compNo = model('OrgDept')->getCompNo($deptNo);
+
         $where = [
             'content'   =>  ['like','%'.$condition->keyword.'%']
         ];
@@ -14,8 +19,23 @@ class TaskSearch extends Common
         if ($condition->taskType != '')
             $where['tt.typeId'] = $condition->taskType;
         if ($condition->deptValue != [])
-            $where['td.deptNo'] = $condition->deptValue[1];
-
+        {
+        	if ($condition->deptValue[0] != 0)
+        	{
+            	$where['td.deptNo'] = $condition->deptValue[1];
+            	$comp = model('OrgDept')->getCompNo($condition->deptValue[1]);
+            	$returnDept = [(int)$comp, $condition->deptValue[1]];
+        	}
+        	else 
+        	{
+        		$returnDept = [0];
+        	}
+        }
+        else 
+        {
+        	$where['td.deptNo'] = $deptNo;
+        	$returnDept = [(int)$compNo, $deptNo];
+        }
         if ($condition->timeLimit != '')
         {
         	$month = date('m', strtotime($condition->timeLimit));
@@ -39,7 +59,7 @@ class TaskSearch extends Common
             else 
                 $where['task.status'] = ['<>', '3'];
         }
-		$list = model('Task')->getTaskList($where, false, $page, $listRow, $tDate);
+		$list = model('Task')->getTaskList($where, false, $tDate, $page, $listRow);
 		$total = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
@@ -65,7 +85,9 @@ class TaskSearch extends Common
 			'page'		=>	(int)$page,
 			'listRow'	=>	(int)$listRow,
 			'total'		=>	$total,
-			'month'		=>	$month
+			'month'		=>	$month,
+			'dept'		=>	$returnDept,
+			'tDate'		=>	$tDate
 		);
 
 		$this->success('', '', $result);
@@ -86,12 +108,12 @@ class TaskSearch extends Common
         if ($condition->timeLimit != '')
         {
         	$month = date('m', strtotime($condition->timeLimit));
-            $where['td.tDate'] = date('Ym', strtotime($condition->timeLimit));
+        	$tDate = date('Ym', strtotime($condition->timeLimit));
         }
         else 
         {
-        	$month = date('m', strtotime('-2 months'));
-        	$where['td.tDate'] = date('Ym', strtotime('-2 months'));
+        	$month = date('m', strtotime('-2 month'));
+        	$tDate = date('Ym', strtotime('-2 month'));
         }
         if ($condition->leaderFirst != '')
             $where['t1.leader'] = $condition->leaderFirst;
@@ -106,7 +128,7 @@ class TaskSearch extends Common
             else 
                 $where['task.status'] = ['<>', '3'];
         }
-		$list = model('Task')->getTaskList($where, true);
+		$list = model('Task')->getTaskList($where, true, $tDate);
 		$count = count($list);
 
 		try 

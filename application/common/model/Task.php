@@ -80,6 +80,7 @@ class Task extends Model
                     't3.duty'               =>  'duty3',
                     't3.leader'             =>  'leader3',
                     'task_data.deptNo'      =>  'tdDeptNo',
+                    'task_data.pId'         =>  'tPId',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
@@ -130,6 +131,7 @@ class Task extends Model
                     't3.duty'               =>  'duty3',
                     't3.leader'             =>  'leader3',
                     'task_data.deptNo'      =>  'tdDeptNo',
+                    'task_data.pId'         =>  'tPId',
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
@@ -155,12 +157,12 @@ class Task extends Model
             $OrgDept = new OrgDept();
             foreach($list as $k=>$v)
             {
-                $describe = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
+                $describe = model('ProcessData')->where(['pId'=>$v['tPId'], 'levelNo'=>$v['taskDataStatus']])->value('pDescribe');
                 $list[$k]['statusMsg'] = ($describe == '' ? ('步骤' . $v['taskDataStatus']) : $describe) . ($v['taskDataStatus'] == 1 ? '填报中' : ($v['currMonthStatus'] == 1 ? '审批中' : '完成审批'));
                 $list[$k]['deptNo'] = $OrgDept->where(['DEPT_NO'=>$v['tdDeptNo']])->value('DEPT_NAME');
                 $list[$k]['timeLimit'] = substr_replace($v['timeLimit'], '年', 4, 0) . '月';
                 $list[$k]['typeName'] = implode(',', model('TaskType')->where(['id'=>['in', $v['typeId']]])->column('typeName'));
-                $participateLevel = Model('ProcessData')->getStepIds($v['pId']);       // 当前用户能参与到的步骤
+                $participateLevel = Model('ProcessData')->getStepIds($v['tPId']);       // 当前用户能参与到的步骤
                 if (!$flag)
                 {
                     if (count($participateLevel) < 1) // 当用户不能看到所有任务,如果用户不能参与到任务的任何流程，则跳过该任务
@@ -169,9 +171,8 @@ class Task extends Model
                 // 如果当前用户不能参与到该任务的流程中，则给其设置一个任意的不会和任务当前状态相等的值
                 $pLevel = isset($participateLevel['0']) ? $participateLevel['0'] : 0;   
                 $list[$k]['getStepIds'] = $pLevel;
-                $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id']);
+                $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id'], $v['tdDeptNo'], $tDate);
 
-                
                 $taskList[] = $list[$k];
             }
             if($ifStatus != ''){
@@ -315,15 +316,17 @@ class Task extends Model
     /**
      * 获取任务某个月的状态
      * @param  int $id            任务Id
-     * @return string             任务状态信息（0 =》驳回，1 =》填报中，2 =》审核中）
+     * @param  string $deptNo     部门Id
+     * @param  string $tDate      督办的月份
+     * @return string             任务状态信息（0 =》驳回，1 =》填报中，2 =》审核中，3 =》审核完成）
      */
-    public function getTaskStatusMsg($id)
+    public function getTaskStatusMsg($id, $deptNo, $tDate)
     {
         $status = '';
         $taskDataStatusMsg = new Task();
         $pId = Model('Task')->where(['id'=>$id])->value('pId');
-        $maxLevel = Model('Process')->where('id', $pId)->value('level');
-        $taskData = Model('TaskData')->where(['tId'=>$id])->find();
+        $maxLevel = Model('Process')->where('id', $pId)->value('level');   // 任务的流程有几部
+        $taskData = Model('TaskData')->where(['tId'=>$id, 'deptNo'=>$deptNo, 'tDate'=>$tDate])->find();        // 
         $currentLevel = $taskData['currentLevel'];
         $taskLog = Model('taskLog')->where(['tId'=>$id,'tDId'=>$taskData['id']])->select();
         $lastTaskLog = array_pop($taskLog);
@@ -373,7 +376,7 @@ class Task extends Model
         return $msg;
     }
 
-    public function getTaskList($where, $all = false, $page = '1', $listRow = '10', $tDate='')
+    public function getTaskList($where, $all = false, $tDate='', $page = '1', $listRow = '10')
     {
         $model = $this->alias('task')
             ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -542,7 +545,7 @@ class Task extends Model
                     return false;
                 }
                 foreach($empNo as $k2=>$v2){
-                    $empNoAll = $v2;
+                    $empNoAll[] = $v2;
                 }
                 //外勤人员的压入
                 $fieldStaff = Model('Assist')->where(['DEPT_NO'=>$v])->column('EMP_NO');
@@ -555,6 +558,6 @@ class Task extends Model
         }
         $userId = Model('Task')->getUserId($empNoAll);
         array_push($userId,'37162');//李天航的userId
-        $pushChat= Model('Task')->weChatPush($userId,$setText);
+        // $pushChat= Model('Task')->weChatPush($userId,$setText);
     }
 }

@@ -98,7 +98,7 @@ class Task extends Common
     /*
      * 更新
      */
-    public function edit($id, $completeSituation='', $problemSuggestions='', $analysis='', $taskSelect=false){
+    public function edit($id, $completeSituation='', $problemSuggestions='', $analysis='', $taskSelect=false, $submit = false){
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo){
@@ -151,9 +151,11 @@ class Task extends Common
         if ($updateDataStatus === false) {
             $this->error($TaskDataModel->getError());
         }
-//         if($updateDataStatus === 0 && $taskUpdate === 0){
-//             $this->error('您没做任何修改！');
-//         }
+        if (!$submit) 
+        {
+            if($updateDataStatus === 0 && $taskUpdate === 0)
+                $this->error('您没做任何修改！');
+        }
         $TaskLogModel = new TaskLog();
         $result = $TaskLogModel->addLog($taskInfo['id'],$taskDataInfo['id'],'edit',$userInfo['EMP_NO'],$deptNo,$update,$taskDataInfo->toArray());
 
@@ -296,7 +298,8 @@ class Task extends Common
         }else{
             //添加驳回日志
             $result = Model('TaskLog')->addRejectLog($taskDataInfo['tId'],$taskDataInfo['id'],'reject',$userInfo['EMP_NO'],$reason);
-            $this->success('驳回成功!');
+            if ($result)
+                $this->success('驳回成功!');
         }
 
     } 
@@ -355,7 +358,7 @@ class Task extends Common
     /*
      * 获取日志
      */
-    public function getLogs($tId, $mouth, $deptNo)
+    public function getLogs($tId, $mouth, $tDeptNo)
     {
         //根据登录的用户查询它的三级组织id
         $userInfo = getUserInfo();
@@ -363,7 +366,7 @@ class Task extends Common
 
         $year = date('Y',time());
         $tDate =  $year . $mouth;
-        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate, 'deptNo'=>$deptNo])->value('id');
+        $tDId = Model('TaskData')->where(['tId'=>$tId,'tDate'=>$tDate, 'deptNo'=>$tDeptNo])->value('id');
         $result = Model('TaskLog')->where(['tDId'=>$tDId])->order('createTime asc')->select();
         if($result){
             foreach($result as $k=>$v){
@@ -372,7 +375,6 @@ class Task extends Common
             }
         }
         $this->success($result);
-
     }
 
     /*
@@ -503,7 +505,6 @@ class Task extends Common
                 'task_data.currentLevel'    =>  'taskDataStatus',
                 'task_data.nextLevel'       =>  'taskDataNextStatus'
             ])->group('task.id')->select();
-        // echo model('Task')->getLastSql();exit;
         $result = true;
         foreach ($list as $k => $v)
         {
@@ -536,18 +537,38 @@ class Task extends Common
      * 判断第三级用户
      * @return [type] [description]
      */
-    public function checkCount($countDoing)
+    public function checkCount()
     {
         $tDate = $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
 
+        $countDoing = model('Task')->alias('task')
+            ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+            ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+            ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
+            ->where(['task.status'=>['in', '1,2'], 'task_data.deptNo'=>$deptNo])
+            ->where(function ($query) use ($deptNo, $empNo) {
+                $query->where([
+                    'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                ])->whereOr([
+                    'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                ]);
+            })->where(function ($query) use ($empNo) {
+                $query->where([
+                    'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                ]);
+            })->group('task_data.id')->count();
+
         $countAll = model('Task')->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
             ->where(['task.status'=>['in', '1,2'], 'task_data.deptNo'=>$deptNo])->group('task_data.id')->count();
-// echo model('Task')->getLastSql();exit;
+
         if ($countDoing == $countAll)
             $this->success();
         elseif ($countDoing > $countAll)
