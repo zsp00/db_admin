@@ -32,7 +32,7 @@ class Task extends Model
         $where = [];
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
-        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $ifStatus = '';
 
         foreach($map as $k=>$v)
@@ -230,10 +230,10 @@ class Task extends Model
             foreach($taskDataList as $k=>$v)
             {
                 $taskDataList[$k]['taskSelect'] = $info['status'] == '1' ? false : true;
-                $taskDataList[$k]['commitAll'] = model('ProcessData')->where(['pId'=>$info['pId'], 'levelNo'=>$v['currentLevel']])->value('commitAll');
+                $taskDataList[$k]['commitAll'] = model('ProcessData')->where(['pId'=>$v['pId'], 'levelNo'=>$v['currentLevel']])->value('commitAll');
                 $steps = array();
                 // 获取流程步骤，拼凑页面步骤条数据
-                $processData = model('ProcessData')->where('pId', $info['pId'])->order('levelNo')->select();
+                $processData = model('ProcessData')->where('pId', $v['pId'])->order('levelNo')->select();
                 foreach ($processData as $kk => $vv)
                 {
                     // 如果没有描述字段则显示步骤编号
