@@ -91,7 +91,6 @@ class Task extends Model
                     'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
                 ]);
             $list = $model->page($page,$listRow)->group('task_data.id')->select();
-            // echo $this->getLastSql();exit;
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
@@ -109,7 +108,7 @@ class Task extends Model
                     ]);
                 })->group('task_data.id')->count();
         }
-        else 
+        else
         {
             $model = $this->alias('task')
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -147,10 +146,10 @@ class Task extends Model
                 ->where($where)->group('task_data.id')->count();
         }
         $result['dbCount'] = $this->alias('task')    // 显示本月督办任务数量
-                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
-                ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->where($where)->group('task_data.id')->count();
-                
+        ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
+            ->where($where)->group('task_data.id')->count();
+
         $commitNum = 0;
         $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
         if($list)
@@ -170,7 +169,7 @@ class Task extends Model
                         continue;
                 }
                 // 如果当前用户不能参与到该任务的流程中，则给其设置一个任意的不会和任务当前状态相等的值
-                $pLevel = isset($participateLevel['0']) ? $participateLevel['0'] : 0;   
+                $pLevel = isset($participateLevel['0']) ? $participateLevel['0'] : 0;
                 $list[$k]['getStepIds'] = $pLevel;
                 $list[$k]['getTaskStatusMsg'] = $this->getTaskStatusMsg($v['id'], $v['tdDeptNo'], $tDate);
 
@@ -187,21 +186,21 @@ class Task extends Model
 
         // 针对于当前登录用户  判断本月提交了多少个任务
         $result['commitNum'] = $this->alias('task')
-                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
-                ->join('task_tasktype', 'task.id=task_tasktype.tId')
-                ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
-                ->where($where)
-                ->where(function ($query) use ($deptNo, $empNo) {
-                    $query->where([
-                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
-                    ])->whereOr([
-                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
-                    ]);
-                })->where(function ($query) use ($empNo) {
-                    $query->where([
-                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
-                    ]);
-                })->group('task_data.id')->count();
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->join('task_tasktype', 'task.id=task_tasktype.tId')
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
+            ->where($where)
+            ->where(function ($query) use ($deptNo, $empNo) {
+                $query->where([
+                    'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                ])->whereOr([
+                    'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                ]);
+            })->where(function ($query) use ($empNo) {
+                $query->where([
+                    'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                ]);
+            })->group('task_data.id')->count();
 
         $result['data'] = $taskList;
         return $result;
@@ -274,7 +273,7 @@ class Task extends Model
 
             $taskDataStatusMsg = new TaskData();
             $info['taskDataList'] = $taskDataList;
-            
+
             return $info;
         }else{
             return false;
@@ -327,7 +326,7 @@ class Task extends Model
         $taskDataStatusMsg = new Task();
         $pId = Model('Task')->where(['id'=>$id])->value('pId');
         $maxLevel = Model('Process')->where('id', $pId)->value('level');   // 任务的流程有几部
-        $taskData = Model('TaskData')->where(['tId'=>$id, 'deptNo'=>$deptNo, 'tDate'=>$tDate])->find();        // 
+        $taskData = Model('TaskData')->where(['tId'=>$id, 'deptNo'=>$deptNo, 'tDate'=>$tDate])->find();        //
         $currentLevel = $taskData['currentLevel'];
         $taskLog = Model('taskLog')->where(['tId'=>$id,'tDId'=>$taskData['id']])->select();
         $lastTaskLog = array_pop($taskLog);
@@ -339,7 +338,7 @@ class Task extends Model
             $status = 1;
         } else if($currentLevel <= $maxLevel){
             $status = 2;
-        } 
+        }
         return $status;
     }
 
@@ -410,7 +409,7 @@ class Task extends Model
             $list = $model->page($page, $listRow)->group('id')->select();
 
         // 按照需求拼凑填报内容
-        foreach ($list as $k => $v) 
+        foreach ($list as $k => $v)
         {
             $list[$k]['complete'] = '';
             $list[$k]['problem'] = '';
@@ -424,11 +423,11 @@ class Task extends Model
                 $list[$k]['problem'] = $content['problemSuggestions'];
                 $list[$k]['analysis'] = $content['analysis'];
             }
-            else 
+            else
             {
                 // 如果部门涉及到多部门，分别获取各部门的填报内容
                 $deptNos = model('RelevantDepartments')->where('relevantName', $v['deptNo'])->select();
-                foreach ($deptNos as $kk => $vv) 
+                foreach ($deptNos as $kk => $vv)
                 {
                     $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$vv['deptNo'], 'tDate'=>$tDate])->find();
                     if (!$content)
@@ -513,7 +512,7 @@ class Task extends Model
      *  $deptNo = 【】二维数组 为空默认为全部督办所有任务
      *   全部督办任务触发该方法
      */
-    public function superviseChat($setText,$deptNo='')
+    public function superviseChat($setText,$deptNo='',$notInIds='')
     {
         if($deptNo == ''){
             //查询所有的不重复的部门下面的所有的人获取他的userId
@@ -531,19 +530,19 @@ class Task extends Model
                 $fieldStaff = Model('Assist')->where(['DEPT_NO'=>$v])->column('EMP_NO');
                 if($fieldStaff){
                     foreach($fieldStaff as $k3=>$v3){
-                        array_push($empNoAll,$v3);
+                        $empNoAll[] = $v3;
                     }
                 }
             }
         }else{
-            $empNoAll = array();
+            if(empty($deptNo)){
+                return false;
+            }
+            $empNoAll = [];
             foreach($deptNo as $k=>$v){
-                if($v == ''){
-                    continue;
-                }
                 $empNo= Model('UserEmp')->where(['DEPTNO'=>$v])->column('EMP_NO');
                 if(!$empNo){
-                    return false;
+                    continue;
                 }
                 foreach($empNo as $k2=>$v2){
                     $empNoAll[] = $v2;
@@ -552,13 +551,18 @@ class Task extends Model
                 $fieldStaff = Model('Assist')->where(['DEPT_NO'=>$v])->column('EMP_NO');
                 if($fieldStaff){
                     foreach($fieldStaff as $k3=>$v3){
-                        array_push($empNoAll,$v3);
+                        $empNoAll[] = $v3;
                     }
                 }
+            }
+            //这里是部门里面不包含的人
+            if($notInIds !== ''){
+                $notInIds = explode(',',$notInIds);
+                $empNoAll = array_diff($empNoAll,$notInIds);
             }
         }
         $userId = Model('Task')->getUserId($empNoAll);
         array_push($userId,'37162');//李天航的userId
-        // $pushChat= Model('Task')->weChatPush($userId,$setText);
+        $pushChat= Model('Task')->weChatPush($userId,$setText);
     }
 }

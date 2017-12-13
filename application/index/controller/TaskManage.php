@@ -245,7 +245,7 @@ class TaskManage extends Common
                 $result2 = Model('SuperviseRecord')->insertAll($superviseRecordAll);
             }
             if($result){
-                Model('Task')->superviseChat($setText='任务开始督办请您尽快填报！'); //全部插入成功执行微信通知
+                //Model('Task')->superviseChat($setText='任务开始督办请您尽快填报！'); //全部插入成功执行微信通知
                 $this->success('督办任务督办成功！');
             }else{
                 $this->error('任务督办失败！');
@@ -291,7 +291,7 @@ class TaskManage extends Common
             }
             //数据处理保存数据库
             if($result){
-                Model('Task')->superviseChat($setText='任务开始督办请您尽快填报！',$deptNoAll);
+                //Model('Task')->superviseChat($setText='任务开始督办请您尽快填报！',$deptNoAll);
                 $this->success('任务督办成功！');
             }else{
                 $this->error('任务督办失败！');

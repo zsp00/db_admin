@@ -287,15 +287,23 @@ class Task extends Common
         //另外2级驳回到1级（1级一般为部门）
         $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
         if($currentLevel == '1'){
-            $deptNoAll[] = Model('TaskData')->where(['id'=>$id])->value('deptNo');
-            Model('Task')->superviseChat($setText="1督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason ,$deptNoAll);
+            $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
+            if($empNoPushChat == ',,'){
+                $deptNoAll[] =  trim(Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('deptNos'),',');
+                $notInIds = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('notInIds');
+                Model('Task')->superviseChat($setText="督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason ,$deptNoAll,$notInIds);
+            }else{
+                $userId = Model('Task')->getUserId($empNoPushChat);
+                $pushChat= Model('Task')->weChatPush($userId,"督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason);
+            }
         }else{
             $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');
             if($empNoPushChat){
                 $userId = Model('Task')->getUserId($empNoPushChat);
-                $pushChat= Model('Task')->weChatPush($userId,"2-6督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason);
+                $pushChat= Model('Task')->weChatPush($userId,"督办任务被驳回请您查看处理！".'</br>'.'驳回理由：'.$reason);
             }
         }
+
         if ($updateStatus === false){
             $this->error($TaskDataModel->getError());
         }else{
@@ -310,58 +318,79 @@ class Task extends Common
     /**
      * 确认任务
      */
-    public function confirm($data,$taskSelect=false, $timeLimit='')
+    public function confirm($timeLimit='')
     {
-        if(is_array($data)){
-            //获取用户的权限
-            $userInfo = getUserInfo();
-            $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-            if ($timeLimit !== '')
-                $tDate = date('Ym', strtotime($timeLimit));
-            else 
-                $tDate = date('Ym', strtotime('-1 months'));
-
-            $TaskDataModel = new TaskData();
-            foreach($data as $k=>$v){
-                $taskDataInfo = $TaskDataModel->where(['tId'=>$v['id']])->find();
-                if($taskSelect){
-                    Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3', 'completeTime'=>time()]);
-                }
-                //本月的任务确认task_data表
-                $updateStatus = $TaskDataModel->where(['tId'=>$v['id'],'status'=>'1'])->update(['status' => 0]);
-
-                if ($updateStatus === false) {
-                    $this->error($TaskDataModel->getError());
-                }else{
-                    //添加确认日志
-                    $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'confirm',$userInfo['EMP_NO'],$deptNo);
-                }
-            }
+        //获取用户的权限
+        $userInfo = getUserInfo();
+        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        if ($timeLimit !== ''){
+            $tDate = date('Ym', strtotime($timeLimit));
         }else{
-            //获取用户的权限
-            $userInfo = getUserInfo();
-            $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
-            $TaskDataModel = new TaskData();
-
-            $taskDataInfo = $TaskDataModel->where(['id'=>$data])->find();
-            if(!$taskDataInfo){
-                $this->error('该条记录未找到');
+            $tDate = date('Ym', strtotime('-1 months'));
+        }
+        $taskAll = model('Task')->alias('task')
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->where(['task.status'=>['in', '1,2']])->group('task_data.id')
+            ->field(['task.*','task_data.tId','task_data.tDate','task_data.id'=>'tDId','task_data.status'=> 'tDstatus'])
+            ->select();
+        if(empty($taskAll)){
+            $this->error('您的任务已经全部确认！');
+        }
+        $taskDataUpdate = [];
+        foreach($taskAll as $k=>$v){
+            if($v['status'] == '2'){
+                Model('Task')->where(['id'=>$v['id']])->update(['status' => 3,'completeTime'=>time()]);
             }
-            if($taskSelect){
-                Model('Task')->where(['id'=>$taskDataInfo['tId']])->update(['status'=>'3', 'completeTime'=>time()]);
-            }
-            //本月的任务确认task_data表
-            $updateStatus = $TaskDataModel->where(['id'=>$data])->update(['status' => 0]);
-
-            if ($updateStatus === false) {
-                $this->error($TaskDataModel->getError());
-            }else{
-                //添加确认日志
-                $result = Model('TaskLog')->addLog($taskDataInfo['tId'],$taskDataInfo['id'],'confirm',$userInfo['EMP_NO'],$deptNo);
-            }
+            $taskDataUpdate[] = ['id'=>$v['tDId'],'status'=>0];
+            Model('TaskLog')->addLog($v['id'],$v['tDId'],'confirm',$userInfo['EMP_NO'],$deptNo);
+        }
+        $result = Model('TaskData')->saveAll($taskDataUpdate);
+        if($result){
+            $this->success('任务确认成功!');
         }
 
-        $this->success('确认成功!');
+    }
+    /**
+     * 判断是不是所有任务全部提交到最后一级
+     * @return [type] [description]
+     */
+    public function checkCountConfirm($timeLimit='')
+    {
+        if ($timeLimit !== ''){
+            $tDate = date('Ym', strtotime($timeLimit));
+        }else{
+            $tDate = date('Ym', strtotime('-1 months'));
+        }
+        $userInfo = getUserInfo();
+        $empNo = $userInfo['EMP_NO'];
+        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+
+        $countDoing = model('Task')->alias('task')
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->join('process_data', 'task_data.currentLevel=process_data.levelNo and task_data.pId=process_data.pId', 'left')
+            ->where(['task.status'=>['in', '1,2']])
+            ->where(function ($query) use ($deptNo, $empNo) {
+                $query->where([
+                    'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                ])->whereOr([
+                    'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                ]);
+            })->where(function ($query) use ($empNo) {
+                $query->where([
+                    'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                ]);
+            })->group('task_data.id')->count();
+
+        $countAll = model('Task')->alias('task')
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->where(['task.status'=>['in', '1,2']])->group('task_data.id')->count();
+
+        if ($countDoing == $countAll)
+            $this->success();
+        elseif ($countDoing > $countAll)
+            $this->error('系统出现故障，请联系管理员！');
+        else
+            $this->error('尚有任务未提交到您，暂不能全部确认！');
     }
     /*
      * 获取日志
