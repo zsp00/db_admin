@@ -104,7 +104,12 @@ class TaskSearch extends Common
         if ($condition->taskType != '')
             $where['tt.typeId'] = $condition->taskType;
         if ($condition->deptValue != [])
-            $where['task.deptNo'] = $condition->deptValue[1];
+        {
+        	if ($condition->deptValue[0] != 0)
+            	$where['td.deptNo'] = $condition->deptValue[1];
+        }
+        else 
+        	$where['td.deptNo'] = $deptNo;
         if ($condition->timeLimit != '')
         {
         	$month = date('m', strtotime($condition->timeLimit));

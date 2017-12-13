@@ -91,6 +91,7 @@ class Task extends Model
                     'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
                 ]);
             $list = $model->page($page,$listRow)->group('task_data.id')->select();
+            // echo $this->getLastSql();exit;
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')

@@ -10,7 +10,7 @@ use app\common\model\TaskLog;
 
 class Task extends Common
 {
-    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true')
+    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true', $timeLimit='')
     {
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
@@ -45,8 +45,10 @@ class Task extends Common
             $map['ifStatus'] = $ifStatus;
         if ($dept !== [])      // 部门
             $map['deptNo'] = $dept[1];
-
-        $tDate = date('Ym', strtotime('-1 months'));
+        if ($timeLimit !== '')
+            $tDate = date('Ym', strtotime($timeLimit));
+        else 
+            $tDate = date('Ym', strtotime('-1 months'));
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo, $flag);
 
         if (!$result)
@@ -54,6 +56,7 @@ class Task extends Common
 
         $result['date'] = $pcInfo;
         $result['flag'] = $flag;
+        $result['tDate'] = $tDate;
         $this->success($result);
     }
 
@@ -307,12 +310,17 @@ class Task extends Common
     /**
      * 确认任务
      */
-    public function confirm($data,$taskSelect=false)
+    public function confirm($data,$taskSelect=false, $timeLimit='')
     {
         if(is_array($data)){
             //获取用户的权限
             $userInfo = getUserInfo();
             $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+            if ($timeLimit !== '')
+                $tDate = date('Ym', strtotime($timeLimit));
+            else 
+                $tDate = date('Ym', strtotime('-1 months'));
+
             $TaskDataModel = new TaskData();
             foreach($data as $k=>$v){
                 $taskDataInfo = $TaskDataModel->where(['tId'=>$v['id']])->find();
@@ -478,9 +486,12 @@ class Task extends Common
     }
 
     // 第三级用户批量提交任务
-    public function commitAll()
+    public function commitAll($timeLimit)
     {
-        $tDate = $tDate = date('Ym', strtotime('-1 months'));
+        if ($timeLimit !== '')
+            $tDate = date('Ym', strtotime($timeLimit));
+        else 
+            $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
@@ -537,9 +548,12 @@ class Task extends Common
      * 判断第三级用户
      * @return [type] [description]
      */
-    public function checkCount()
+    public function checkCount($timeLimit='')
     {
-        $tDate = $tDate = date('Ym', strtotime('-1 months'));
+        if ($timeLimit !== '')
+            $tDate = date('Ym', strtotime($timeLimit));
+        else 
+            $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
