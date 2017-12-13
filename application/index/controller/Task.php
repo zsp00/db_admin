@@ -19,7 +19,7 @@ class Task extends Common
             $this->error('您所在的分公司不参与');
         }
         $OrgDept = new OrgDept();
-        $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
 
         // 检索条件
         $Task = new \app\common\model\Task();
@@ -134,7 +134,7 @@ class Task extends Common
         }
         // 获取用户的身份
         $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         // 更新内容   先更新任务详情
         $update = [
             'completeSituation' =>  $completeSituation,
@@ -180,7 +180,7 @@ class Task extends Common
     {
         //获取用户的信息
         $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
@@ -234,7 +234,7 @@ class Task extends Common
     {
         //获取用户的权限
         $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
@@ -271,7 +271,7 @@ class Task extends Common
         $pId = $data['pId'];
         //获取用户的权限
         $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
         if(!$taskDataInfo)
@@ -315,7 +315,7 @@ class Task extends Common
         if(is_array($data)){
             //获取用户的权限
             $userInfo = getUserInfo();
-            $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+            $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
             if ($timeLimit !== '')
                 $tDate = date('Ym', strtotime($timeLimit));
             else 
@@ -370,7 +370,7 @@ class Task extends Common
     {
         //根据登录的用户查询它的三级组织id
         $userInfo = getUserInfo();
-        $deptNo = Model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
 
         $year = date('Y',time());
         $tDate =  $year . $mouth;
@@ -494,7 +494,7 @@ class Task extends Common
             $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
-        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $list = model('Task')->alias('task')
             ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
@@ -556,7 +556,7 @@ class Task extends Common
             $tDate = date('Ym', strtotime('-1 months'));
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
-        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
 
         $countDoing = model('Task')->alias('task')
             ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -604,7 +604,7 @@ class Task extends Common
         $userInfo = getUserInfo();
         $empNo = $userInfo['EMP_NO'];
         $OrgDept = new OrgDept();
-        $deptNo = $OrgDept->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
 
         // 检索条件
         $where = [

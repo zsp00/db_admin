@@ -8,7 +8,7 @@ class TaskSearch extends Common
 		$condition = json_decode($condition);
 
 		$userInfo = getUserInfo();
-        $deptNo = model('OrgDept')->getDeptNo($userInfo['DEPTNO']);
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $compNo = model('OrgDept')->getCompNo($deptNo);
 
         $where = [
@@ -95,6 +95,8 @@ class TaskSearch extends Common
 
 	public function exportList($condition)
 	{
+		$userInfo = getUserInfo();
+        $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
 		$condition = json_decode($condition);
         $where = [
             'content'   =>  ['like','%'.$condition->keyword.'%']

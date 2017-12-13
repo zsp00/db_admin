@@ -136,3 +136,16 @@ function saveExcelToLocalFile($objWriter, $fileName)
     $objWriter->save($filePath);
     return $filePath;  
 }
+
+/**
+ * 获取二级公司接受任务的部门
+ * @param  string $deptNo 当前登录用户的部门Id
+ * @return string         部门Id
+ */
+function getSubDeptNo($deptNo)
+{
+    $compNo = model('OrgDept')->getCompNo($deptNo);
+    if ($compNo != '1000')
+        return model('RelevantDepartments')->where('compNo', $compNo)->limit(1)->value('deptNo');
+    return $deptNo;
+}
