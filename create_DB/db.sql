@@ -95,9 +95,9 @@ create table d_task_data
   currentLevel         tinyint                   not null            comment '当前流程走到哪一步',
   nextLevel            tinyint                   not null            comment '流程下一步',
   tDate                mediumint                 not null            comment '任务流程的月份，格式：201711',
-  completeSituation    varchar(500)                                  comment '完成情况',
-  problemSuggestions   varchar(500)                                  comment '问题和建议',
-  analysis             varchar(500)                                  comment '问题分析',
+  completeSituation    varchar(3000)                                 comment '完成情况',
+  problemSuggestions   varchar(3000)                                 comment '问题和建议',
+  analysis             varchar(3000)                                 comment '问题分析',
   status               boolean                   default 1           comment '所属月份该流程是否关闭，0关闭，1进行中'
 );
 

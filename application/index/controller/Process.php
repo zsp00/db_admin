@@ -25,10 +25,31 @@ class Process extends Common
 
 		foreach ($deptList as $k => $v)
 		{
-			$result[$v['COMP_NO']]['children'][] = array(
-				'value'	=>	$v['DEPT_NO'],
-				'label'	=>	$v['DEPT_NAME']
-			);
+			if ($v['DEPT_NO'] == '011209')
+			{
+				$subDept = model('OrgDept')->where('PARENT_DEPT_NO', '011209')->select();
+				$subDeptList = array();
+				foreach ($subDept as $kk => $vv) 
+				{
+					$subDeptList[] = array(
+						'value'		=>	$vv['DEPT_NO'],
+						'label'		=>	$vv['DEPT_NAME']
+					);
+				}
+				$result[$v['COMP_NO']]['children'][] = array(
+					'value'		=>	$v['DEPT_NO'],
+					'label'		=>	$v['DEPT_NAME'],
+					'children'	=>	$subDeptList
+				);
+			}
+			else 
+			{
+				$result[$v['COMP_NO']]['children'][] = array(
+					'value'	=>	$v['DEPT_NO'],
+					'label'	=>	$v['DEPT_NAME']
+				);
+			}
+			
 		}
 
 		if (!is_null($result))

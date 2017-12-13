@@ -44,7 +44,12 @@ class Task extends Common
         if ($ifStatus !== '')    // 是否提交
             $map['ifStatus'] = $ifStatus;
         if ($dept !== [])      // 部门
-            $map['deptNo'] = $dept[1];
+        {
+            if ($dept[1] == '011209')
+                $map['deptNo'] = $dept[2];
+            else
+                $map['deptNo'] = $dept[1];
+        }    
         if ($timeLimit !== '')
             $tDate = date('Ym', strtotime($timeLimit));
         else 
@@ -653,7 +658,12 @@ class Task extends Common
         if ($typeId !== '')    // 分类
             $where['task_tasktype.typeId'] = $typeId;
         if ($dept !== [])      // 部门
-            $where['task_data.deptNo'] = $dept[1];
+        {
+            if ($dept[1] == '011209')
+                $where['task_data.deptNo'] = $dept[1];
+            else 
+                $where['task_data.deptNo'] = $dept[1];
+        }
 
         $tDate = date('Ym', strtotime('-1 months'));
 

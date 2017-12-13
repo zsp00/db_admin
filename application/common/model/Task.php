@@ -269,7 +269,7 @@ class Task extends Model
                 // 页面显示月份用
                 $taskDataList[$k]['tDate'] = substr($v['tDate'],4);
             }
-            $info['identitys'] = $this->_participateLevel == null ? Model('ProcessData')->getStepIds($info['pId']) : $this->_participateLevel;
+            $info['identitys'] = $this->_participateLevel == null ? Model('ProcessData')->getStepIds($taskDataList[0]['pId']) : $this->_participateLevel;
 
             $taskDataStatusMsg = new TaskData();
             $info['taskDataList'] = $taskDataList;

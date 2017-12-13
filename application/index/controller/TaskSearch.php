@@ -22,9 +22,18 @@ class TaskSearch extends Common
         {
         	if ($condition->deptValue[0] != 0)
         	{
-            	$where['td.deptNo'] = $condition->deptValue[1];
-            	$comp = model('OrgDept')->getCompNo($condition->deptValue[1]);
-            	$returnDept = [(int)$comp, $condition->deptValue[1]];
+        		if ($condition->deptValue[1] == '011209')
+        		{
+        			$where['td.deptNo'] = $condition->deptValue[2];
+	            	$comp = model('OrgDept')->getCompNo($condition->deptValue[2]);
+	            	$returnDept = [(int)$comp, $condition->deptValue[1], $condition->deptValue[2]];
+        		}
+        		else 
+        		{
+        			$where['td.deptNo'] = $condition->deptValue[1];
+            		$comp = model('OrgDept')->getCompNo($condition->deptValue[1]);
+            		$returnDept = [(int)$comp, $condition->deptValue[1]];
+        		}
         	}
         	else 
         	{
@@ -108,7 +117,12 @@ class TaskSearch extends Common
         if ($condition->deptValue != [])
         {
         	if ($condition->deptValue[0] != 0)
-            	$where['td.deptNo'] = $condition->deptValue[1];
+        	{
+        		if ($condition->deptValue[1] == '011209')
+        			$where['td.deptNo'] = $condition->deptValue[2];
+        		else 
+        			$where['td.deptNo'] = $condition->deptValue[1];
+        	}
         }
         else 
         	$where['td.deptNo'] = $deptNo;
