@@ -20,7 +20,6 @@ class Task extends Common
         }
         $OrgDept = new OrgDept();
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
-
         // 检索条件
         $Task = new \app\common\model\Task();
         $map = [
@@ -49,7 +48,9 @@ class Task extends Common
                 $map['deptNo'] = $dept[2];
             else
                 $map['deptNo'] = $dept[1];
-        }    
+        }
+        else
+            $map['deptNo'] = $deptNo;
         if ($timeLimit !== '')
             $tDate = date('Ym', strtotime($timeLimit));
         else 
@@ -628,7 +629,6 @@ class Task extends Common
     public function exportFillinList($condition)
     {
         $params = json_decode($condition);
-        // dump($params);exit;
         $keyword = $params->keyword;
         $typeId = $params->typeId;
         $ifStatus = $params->ifStatus;

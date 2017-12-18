@@ -34,7 +34,6 @@ class Task extends Model
         $empNo = $userInfo['EMP_NO'];
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $ifStatus = '';
-
         foreach($map as $k=>$v)
         {
             if ($k == 'typeId')

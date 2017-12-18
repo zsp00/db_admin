@@ -57,15 +57,60 @@ class Login extends Controller
         ])) {
             $this->error($vUser->getError());
         }
-        $User = new User(Config::get('uams'));
-        $result = $User->login($username, $password);
-        if(!$result){
-            $this->error($User->getErrorMsg());
-        }else{
+
+        $data = [
+            'username'  =>  $username,
+            'password'  =>  $password
+        ];
+        $data['appNo'] = Config::get('ldap.appNo');
+        $data['appKey'] = Config::get('ldap.appKey');
+        $result = post(Config::get('ldap.loginUrl'),$data);
+        $result = json_decode($result,true);
+
+        if($result['statusCode'] != '0x00000000' && !in_array($result['statusCode'],['0x00010004','0x00010005']))
+        {
+            if($result['statusCode'] == '0x00010006')
+                $this->error('密码不正确！');
+            $this->error($result['msg']);
+        }
+        elseif(in_array($result['statusCode'],['0x00010004','0x00010005']))
+        {//需要重置密码
+            $returnUrl = Url('/','',true,true);
+            $updatePostData = [
+                'appNo' =>  Config::get('ldap.appNo'),
+                'appKey' =>  Config::get('ldap.appKey'),
+                'returnUrl' =>  $returnUrl,
+                'personid'  =>  $result['data']['personid'],
+                'password'  =>  $password,
+                'sign'  =>  md5(
+                    Config::get('ldap.appNo').
+                    Config::get('ldap.appKey').
+                    $returnUrl.
+                    $result['data']['personid'].
+                    $password
+                )
+            ];
+            $params = "";
+            foreach ($updatePostData as $k=>$v){
+                if($k == 'returnUrl'){
+                    $v = urlencode($v);
+                }    
+                $params .= "&".$k."=".$v;
+
+            }
+            $params = trim($params,"&");
+
+            //去修改密码
+            $url = Config::get('ldap.updatePasswordUrl')."?".$params;
+            $this->error($result['msg'],$url,$data,1);
+            exit;
+        }
+        else
+        {
             $UserEmp = new UserEmp();
-            session('personid',$result['personid']);
+            session('personid',$result['data']['personid']);
             //查看人力资源库有没有该用户
-            $info = $UserEmp->exists($result['empNo']);
+            $info = $UserEmp->exists($result['data']['empNo']);
             if($info){
                 //检查用户所属公司是否参与
                 //

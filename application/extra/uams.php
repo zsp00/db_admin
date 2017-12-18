@@ -17,7 +17,7 @@
 //];
 
 
-define('LDAP_IP','192.168.251.17');
+// define('LDAP_IP','192.168.251.17');
 return [
     'appNo'                 =>	'14',
     'appKey'                =>	'8VwT1oedhBPnyLhk',
