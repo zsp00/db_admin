@@ -69,6 +69,7 @@ class TaskSearch extends Common
                 $where['task.status'] = ['<>', '3'];
         }
 		$list = model('Task')->getTaskList($where, false, $tDate, $page, $listRow);
+		// dump($list);exit;
 		$total = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
 			->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
@@ -78,13 +79,6 @@ class TaskSearch extends Common
 
 		foreach ($list as $k => $v)   
 		{
-			// 如果任务部门的Id是数字，查询出对应的部门名称
-			if (preg_match_all('/^\d*$/', $v['deptNo']))
-				$list[$k]['deptNo'] = model('OrgDept')->getName($v['deptNo']);
-			else 
-				// 如果不是数字，查询出关联的所有部门的填报情况，拼凑橙字符串显示
-				$list[$k]['deptNo'] = $v['deptNo'];
-
 			$typeIds = model('TaskTasktype')->where('tId', $v['id'])->column('typeId');
 			$list[$k]['taskType'] = implode(',', model('TaskType')->where('id', 'in', implode(',', $typeIds))->column('typeName'));
 		}
@@ -186,7 +180,7 @@ class TaskSearch extends Common
 	    	{
 	    		foreach ($fileds as $kk => $vv)
 	    			$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow($vv, 4 + $k, $v[$kk]);
-	    		$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(11, 4 + $k, preg_match_all('/^\d*$/', $v['deptNo']) ? model('OrgDept')->getName($v['deptNo']) : $v['deptNo']);
+	    		$objPHPExcel->getActiveSheet()->setCellValueByColumnAndRow(11, 4 + $k, $v['deptName']);
 
 	    		// 判断单元格是否需要合并，$k+4是当前要合并的行号，$index是合并起始的行号
 	    		// 序号列，三级目标任务
