@@ -94,7 +94,7 @@ class Login extends Controller
             foreach ($updatePostData as $k=>$v){
                 if($k == 'returnUrl'){
                     $v = urlencode($v);
-                }    
+                }
                 $params .= "&".$k."=".$v;
 
             }

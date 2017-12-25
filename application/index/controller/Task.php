@@ -10,8 +10,9 @@ use app\common\model\TaskLog;
 
 class Task extends Common
 {
-    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = 'true', $timeLimit='')
+    public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = '1', $timeLimit='')
     {
+
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
@@ -79,7 +80,16 @@ class Task extends Common
         $ParticipateDept = new ParticipateDept();
         $result['isParticipate'] = $ParticipateDept->isParticipate($userInfo['DEPTNO'],$userInfo['EMP_NO']) ? true : false;
         $OrgDept = new OrgDept();
-        $result['deptName'] = $OrgDept->getNameList($userInfo['DEPTNO']);
+        $deptName = $OrgDept->getNameList($userInfo['DEPTNO']);
+        if($deptName){
+            $dept = explode('/',$deptName);
+            if($dept[0] == '外勤'){
+                unset($dept[0]);
+            }
+            $result['deptName'] = implode('/',$dept);
+        }else{
+            $result['deptName'] = '';
+        }
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
         if($pcInfo){
@@ -184,8 +194,12 @@ class Task extends Common
      * @param  int $nextLevel    当前流程的下一步
      * @return array               提交结果
      */
-    public function submits($id, $pId, $currentLevel, $nextLevel)
+    public function submits($data)
     {
+        $id = $data['id'];
+        $pId = $data['pId'];
+        $currentLevel = $data['currentLevel'];
+        $nextLevel = $data['nextLevel'];
         //获取用户的信息
         $userInfo = getUserInfo();
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));

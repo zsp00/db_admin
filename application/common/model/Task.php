@@ -23,7 +23,7 @@ class Task extends Model
     ];
     protected $_participateLevel = null;
 
-    public function getList($map, $tDate, $page = 1, $listRow = 20, $needToDo = true, $flag = false) {
+    public function getList($map, $tDate, $page = 1, $listRow = 20, $needToDo = '1', $flag = false) {
         $result = [
             'data'  =>  null,
             'total' =>  0,
@@ -45,7 +45,8 @@ class Task extends Model
             else
                 $where['task.'.$k] = $v;
         }
-        if ($needToDo == 'true')
+        //代办任务
+        if ($needToDo == '1')
         {
             $model = $this->alias('task')
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
@@ -107,9 +108,8 @@ class Task extends Model
                         'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
                     ]);
                 })->group('task_data.id')->count();
-        }
-        else
-        {
+            // 全部任务
+        }else if ($needToDo == '0') {
             $model = $this->alias('task')
                 ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
                 ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
@@ -144,12 +144,73 @@ class Task extends Model
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
                 ->where($where)->group('task_data.id')->count();
+            // 已办任务
+        } else if($needToDo == '2'){
+            $model = $this->alias('task')
+                ->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')
+                ->join('TaskLevelSecond t2', 'task.secondLevel=t2.id')
+                ->join('TaskLevelThird t3', 'task.thirdLevel=t3.id')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel>process_data.levelNo and task_data.pId=process_data.pId', 'left')
+                ->where($where)
+                ->where(function ($query) use ($deptNo, $empNo) {
+                    $query->where([
+                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                    ])->whereOr([
+                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                    ]);
+                })->where(function ($query) use ($empNo) {
+                    $query->where([
+                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                    ]);
+                })->field([
+                    'task.*',
+                    't1.leader'             =>  'leader1',
+                    't1.title'              =>  'title1',
+                    't1.detail'             =>  'detail1',
+                    't2.leader'             =>  'leader2',
+                    't2.title'              =>  'title2',
+                    't2.detail'             =>  'detail2',
+                    't2.deptNo'             =>  'deptNo2',
+                    't3.serialNum'          =>  'serialNum',
+                    't3.detail'             =>  'detail3',
+                    't3.duty'               =>  'duty3',
+                    't3.leader'             =>  'leader3',
+                    'task_data.deptNo'      =>  'tdDeptNo',
+                    'task_data.pId'         =>  'tPId',
+                    'task_data.completeSituation',
+                    'task_data.problemSuggestions',
+                    'task_data.analysis',
+                    'task_data.currentLevel'    =>  'taskDataStatus',
+                    'task_data.status'          =>  'currMonthStatus',
+                    'process_data.commitAll'    =>  'commitAll',
+                    'process_data.confirmAll'    =>  'confirmAll',
+                    'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
+                ]);
+            $list = $model->page($page,$listRow)->group('task_data.id')->select();
+            $result['total'] = $this->alias('task')
+                ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+                ->join('task_tasktype', 'task.id=task_tasktype.tId')
+                ->join('process_data', 'task_data.currentLevel>process_data.levelNo and task_data.pId=process_data.pId', 'left')
+                ->where($where)
+                ->where(function ($query) use ($deptNo, $empNo) {
+                    $query->where([
+                        'process_data.deptNos'   =>  ['like', '%' . $deptNo . '%']
+                    ])->whereOr([
+                        'process_data.empNos'    =>  ['like', '%' . $empNo . '%']
+                    ]);
+                })->where(function ($query) use ($empNo) {
+                    $query->where([
+                        'process_data.notInIds'  =>  ['not like', '%' . $empNo . '%']
+                    ]);
+                })->group('task_data.id')->count();
         }
+
         $result['dbCount'] = $this->alias('task')    // 显示本月督办任务数量
-        ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
+            ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
             ->join('task_tasktype', 'task.id=task_tasktype.tId')
             ->where($where)->group('task_data.id')->count();
-
         $commitNum = 0;
         $taskList = array();    // 当数组的键不是从0开始，ajax传输后会被转为object，所以重新定义数组
         if($list)
