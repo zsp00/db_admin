@@ -10,12 +10,9 @@
 // +----------------------------------------------------------------------
 
 define('LDAP_IP','192.168.251.17');
-//define('LDAP_IP','172.16.10.197:801');
 return [
     'appNo'                 =>  '14',
     'appKey'                =>  '8VwT1oedhBPnyLhk',
-//    'appNo'                 =>	'5',
-//    'appKey'                =>	'1peOZV1CDZM0ZAYA',
     'getWUnitUrl'           =>	'http://'.LDAP_IP.'/homev1/api/getWDept',
     'getWPersonUrl'         =>  'http://'.LDAP_IP.'/homev1/api/getWPerson',
     'getUnitUrl'            =>	'http://'.LDAP_IP.'/homev1/api/getSubChildDept',

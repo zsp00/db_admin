@@ -243,15 +243,15 @@ return [
         // 数据库类型
         'type'        => 'mysql',
         // 服务器地址
-        'hostname'       => '172.16.10.198',
+        'hostname'       => '192.168.251.248',
         // 'hostname'       => '127.0.0.1',
         // 数据库名
         // 'database'    => 'zsgl_dev',
-        'database'    => 'web_portal',
+        'database'    => 'portal',
         // 数据库用户名
-        'username'    => 'root',
+        'username'    => 'portaluser',
         // 数据库密码
-        'password'    => 'root',
+        'password'    => '1qaz@WSX',
         // 数据库编码默认采用utf8
         'charset'     => '',
         // 数据库表前缀

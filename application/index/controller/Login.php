@@ -78,6 +78,7 @@ class Login extends Controller
             $returnUrl = Url('/','',true,true);
             $updatePostData = [
                 'appNo' =>  Config::get('ldap.appNo'),
+                'appKey' =>  Config::get('ldap.appKey'),
                 'returnUrl' =>  $returnUrl,
                 'personid'  =>  $result['data']['personid'],
                 'password'  =>  $password,
@@ -90,11 +91,12 @@ class Login extends Controller
                 )
             ];
             $params = "";
-            foreach ($updatePostData as $k=>$v)
-            {
-                if($k == 'returnUrl')
+            foreach ($updatePostData as $k=>$v){
+                if($k == 'returnUrl'){
                     $v = urlencode($v);
+                }
                 $params .= "&".$k."=".$v;
+
             }
             $params = trim($params,"&");
 

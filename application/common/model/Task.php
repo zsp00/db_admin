@@ -34,7 +34,6 @@ class Task extends Model
         $empNo = $userInfo['EMP_NO'];
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $ifStatus = '';
-
         foreach($map as $k=>$v)
         {
             if ($k == 'typeId')
@@ -92,6 +91,7 @@ class Task extends Model
                     'GROUP_CONCAT(task_tasktype.typeId)'    =>  'typeId'
                 ]);
             $list = $model->page($page,$listRow)->group('task_data.id')->select();
+            // echo $this->getLastSql();exit;
             $result['total'] = $this->alias('task')
                 ->join('task_data', 'task.id = task_data.tId and task_data.status=1 and task_data.tDate='.$tDate)
                 ->join('task_tasktype', 'task.id=task_tasktype.tId')
@@ -283,6 +283,7 @@ class Task extends Model
                 't2.detail'             =>  'detail2',
                 't3.detail'             =>  'detail3',
                 't3.duty'               =>  'duty3',
+                't3.serialNum'          =>  'serialNum'
             ])
             ->find();
         if($info) {

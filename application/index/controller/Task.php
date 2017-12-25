@@ -21,7 +21,7 @@ class Task extends Common
         }
         $OrgDept = new OrgDept();
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
-
+        
         // 检索条件
         $Task = new \app\common\model\Task();
         $map = [
@@ -32,25 +32,28 @@ class Task extends Common
         // 查询当前用户有没有查看所有任务列表的权限
         $res = model('TasklistAuthority')->where(['type'=>'person', 'value'=>$userInfo['EMP_NO']])->find();
         $flag = false;       // 是否能查看所有任务列表的标识，还是只能查看本部门的任务
-        if ($res){
-            $flag = true;
-        }else{
-            $map['deptNo'] =  $deptNo;
-        }
-
+        
         if($level !== '')      // 级别
             $map['level'] = $level;
         if ($typeId !== '')    // 分类
             $map['typeId'] = $typeId;
         if ($ifStatus !== '')    // 是否提交
             $map['ifStatus'] = $ifStatus;
-        if ($dept !== [])      // 部门
+        if ($dept !== [])      // 如果选择了部门
         {
             if ($dept[1] == '011209')
                 $map['deptNo'] = $dept[2];
             else
                 $map['deptNo'] = $dept[1];
-        }    
+        }
+        else    // 如果没有选择部门，当用户有权限查看所有部门任务的的时候则显示全部任务，如果不能查看所有任务则显示本部门的任务
+        {
+            if ($res){    // 能查看所有任务
+                $flag = true;
+            }else{        // 不能查看所有部门的任务
+                $map['deptNo'] =  $deptNo;
+            }
+        }
         if ($timeLimit !== '')
             $tDate = date('Ym', strtotime($timeLimit));
         else 
@@ -642,7 +645,6 @@ class Task extends Common
     public function exportFillinList($condition)
     {
         $params = json_decode($condition);
-        // dump($params);exit;
         $keyword = $params->keyword;
         $typeId = $params->typeId;
         $ifStatus = $params->ifStatus;

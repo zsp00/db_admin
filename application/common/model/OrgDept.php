@@ -137,6 +137,8 @@ class OrgDept extends Model
 	}
 
 	public function getDeptNo($deptNo){
+		if ($deptNo == '01120901')
+			return $deptNo;
 		$deptInfo = $this->where(['DEPT_NO'=>$deptNo])->find();
 		if($deptInfo['LEVEL'] === 3){
 			return $deptNo;

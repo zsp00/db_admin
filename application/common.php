@@ -131,10 +131,10 @@ function getAllName($type,$id,$isAll=false)
 function saveExcelToLocalFile($objWriter, $fileName)
 {
     // make sure you have permission to write to directory
-    $filePath = ROOT_PATH . 'public' . DS . 'excel' . DS . $fileName . '.xlsx'; 
+    $filePath = ROOT_PATH . 'public' . DS . 'excel' . DS . $fileName . '.xlsx';
     // $filePath = 'excel' . DS . $fileName . '.xlsx'; 
     $objWriter->save($filePath);
-    return $filePath;  
+    return $filePath;
 }
 
 /**
@@ -145,14 +145,12 @@ function saveExcelToLocalFile($objWriter, $fileName)
 function getSubDeptNo($deptNo)
 {
     $compNo = model('OrgDept')->getCompNo($deptNo);
-    if($compNo == 'W'){
+    if ($compNo = '1000' || $compNo == 'W')
         return $deptNo;
-    }
-    if ($compNo != '1000'){
+    else
         return model('RelevantDepartments')->where('compNo', $compNo)->limit(1)->value('deptNo');
-    }
-    return $deptNo;
 }
+
 
 function post ( $url ,  $param = array ())
 {
