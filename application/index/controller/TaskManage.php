@@ -12,11 +12,6 @@ class TaskManage extends Common
         $allTotal = count( Model('Task')->select());
         foreach($result as $k=>$v){
             $result[$k]['deptNo'] = Model('OrgDept')->where(['DEPT_NO' => $v['deptNo']])->value('DEPT_NAME');
-//            $result[$k]['typeId'] = Model('TaskType')->where(['id' => $v['typeId']])->value('typeName');
-            $result[$k]['pId'] = Model('Process')->where(['id' => $v['pId']])->value('name');
-            $result[$k]['timeLimit'] = substr($v['timeLimit'],0,4).'年'.substr($v['timeLimit'],4,6).'月';
-            $result[$k]['releaseTime'] = date('Y-m-d H:i:s',$v['releaseTime']);
-            $result[$k]['completeTime'] = date('Y-m-d H:i:s',$v['completeTime']);
         }
         $result = array(
             'list'		=>	$result,
