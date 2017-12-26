@@ -11,9 +11,6 @@ class TaskSearch extends Common
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $compNo = model('OrgDept')->getCompNo($deptNo);
 
-        $where = [
-            'content'   =>  ['like','%'.$condition->keyword.'%']
-        ];
         if ($condition->taskLevel != '')
             $where['task.level'] = $condition->taskLevel;
         if ($condition->taskType != '')
@@ -68,6 +65,13 @@ class TaskSearch extends Common
             else 
                 $where['task.status'] = ['<>', '3'];
         }
+        $year = substr($tDate,0,4);
+        $start = $year.'01';
+        $end = $year.'12';
+        $where = [
+            'content'   =>  ['like','%'.$condition->keyword.'%'],
+            'timeLimit' => ['between',"$start,$end"]
+        ];
 		$list = model('Task')->getTaskList($where, false, $tDate, $page, $listRow);
 		$total = model('Task')->alias('task')
 			->join('TaskLevelFirst t1', 'task.firstLevel=t1.id')

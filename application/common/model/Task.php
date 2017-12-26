@@ -84,6 +84,8 @@ class Task extends Model
                     'task_data.completeSituation',
                     'task_data.problemSuggestions',
                     'task_data.analysis',
+                    'task_data.currentLevel',
+                    'task_data.nextLevel',
                     'task_data.currentLevel'    =>  'taskDataStatus',
                     'task_data.status'          =>  'currMonthStatus',
                     'process_data.commitAll'    =>  'commitAll',

@@ -12,7 +12,6 @@ class Task extends Common
 {
     public function getList($page, $listRow, $keyword = '', $level = '', $typeId = '', $ifStatus = '', $dept = [], $needToDo = '1', $timeLimit='')
     {
-
         $userInfo = getUserInfo();
         $ParticipateComp = new ParticipateComp();
         $pcInfo = $ParticipateComp->getInfo($userInfo['COMP_NO']);
@@ -21,12 +20,21 @@ class Task extends Common
         }
         $OrgDept = new OrgDept();
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
-        
+
+        if ($timeLimit !== ''){
+            $tDate = date('Ym', strtotime($timeLimit));
+        }else{
+            $tDate = date('Ym', strtotime('-1 months'));
+        }
+        $year = substr($tDate,0,4);
+        $start = $year.'01';
+        $end = $year.'12';
         // 检索条件
         $Task = new \app\common\model\Task();
         $map = [
             'content'   =>  ['like','%'.$keyword.'%'],
             'status'    =>  ['in', '1,2'],
+            'timeLimit' => ['between', "$start,$end"]
         ];
 
         // 查询当前用户有没有查看所有任务列表的权限
@@ -54,15 +62,11 @@ class Task extends Common
                 $map['deptNo'] =  $deptNo;
             }
         }
-        if ($timeLimit !== '')
-            $tDate = date('Ym', strtotime($timeLimit));
-        else 
-            $tDate = date('Ym', strtotime('-1 months'));
         $result = $Task->getList($map, $tDate, $page, $listRow, $needToDo, $flag);
 
-        if (!$result)
+        if (!$result){
             $this->error('暂无任务');
-
+        }
         $result['date'] = $pcInfo;
         $result['flag'] = $flag;
         $result['tDate'] = $tDate;
@@ -194,9 +198,14 @@ class Task extends Common
      * @param  int $nextLevel    当前流程的下一步
      * @return array               提交结果
      */
-    public function submits($data)
+    public function submits($data,$fromSubmit)
     {
-        $id = $data['id'];
+        if($fromSubmit == 'detail'){
+            $id = $data['id']; // 这个提交是detail详情页面的提交
+        }else{
+            //这个是index页面的提交
+            $id = Model('TaskData')->where(['tId'=>$data['id'],'status'=>'1'])->value('id');
+        }
         $pId = $data['pId'];
         $currentLevel = $data['currentLevel'];
         $nextLevel = $data['nextLevel'];
@@ -205,8 +214,9 @@ class Task extends Common
         $deptNo = getSubDeptNo(model('OrgDept')->getDeptNo($userInfo['DEPTNO']));
         $TaskDataModel = new TaskData();
         $taskDataInfo = $TaskDataModel->where(['id'=>$id])->find();
-        if(!$taskDataInfo)
+        if(!$taskDataInfo){
             $this->error('该条记录未找到');
+        }
         // 获取流程总的等级
         $level = Model('Process')->where('id', $taskDataInfo['pId'])->value('level');
 
@@ -227,8 +237,8 @@ class Task extends Common
                 $update = ['currentLevel' => $currentLevel + 1];
             }
         }
-
         $updateStatus = $TaskDataModel->where(['id'=>$id])->update($update);
+
         //提交完成后，向这级的人微信推送消息
         $currentLevel = Model('TaskData')->where(['id'=>$id])->value('currentLevel');
         $empNoPushChat = Model('ProcessData')->where(['pId'=>$pId,'levelNo'=>$currentLevel])->value('empNos');

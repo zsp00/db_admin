@@ -51,7 +51,20 @@ class Process extends Common
             }
 
         }
-
+        foreach($result as $k=>$v){
+            if(empty($v['children'])){
+                $deptNo = Model('OrgDept')->where(['DEPT_NAME'=>$v['label']])->value('DEPT_NO');
+                if($deptNo != null){
+                    $deptNo = Model('OrgDept')->where(['PARENT_DEPT_NO'=>$deptNo])->select();
+                    foreach($deptNo as $k2=>$v2){
+                        $result[$k]['children'][] = ['label'=>$v2['DEPT_NAME'],'value'=>$v2['DEPT_NO']];
+                    }
+                }else{
+                    unset($result[$k]['children']);
+                }
+            }
+        }
+        array_pop($result);
         if (!is_null($result))
             $this->success('', '', array_values($result));
         else
