@@ -462,24 +462,22 @@ class Task extends Model
                 't3.detail'             =>  'detail3',
                 't3.duty'               =>  'duty3',
                 't3.leader'             =>  'leader3'
-                // '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.completeSituation SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.completeSituation SEPARATOR "；") END)'    =>  'complete',
-                // '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.problemSuggestions SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.problemSuggestions SEPARATOR "；") END)'  =>  'problem',
-                // '(CASE WHEN LENGTH(task.deptNo)<10 THEN GROUP_CONCAT(td.analysis SEPARATOR "；") ELSE GROUP_CONCAT(rd.deptName, \'：\', td.analysis SEPARATOR "；") END)'  =>  'analysis'
             ])->where($where);
 
         if ($all)
             $list = $model->group('id')->select();
         else
             $list = $model->page($page, $listRow)->group('id')->select();
-
         // 按照需求拼凑填报内容
         foreach ($list as $k => $v)
         {
             $list[$k]['complete'] = '';
             $list[$k]['problem'] = '';
             $list[$k]['analysis'] = '';
+            
             if (preg_match_all('/^\d*$/', $v['deptNo']))
             {
+                $list[$k]['deptName'] = model('Process')->where('id', $v['pId'])->value('name');
                 $content = model('TaskData')->where(['tId'=>$v['id'], 'deptNo'=>$v['deptNo'], 'tDate'=>$tDate])->find();
                 if (!$content)
                     continue;
@@ -503,9 +501,9 @@ class Task extends Model
                     if ($content['analysis'] != '' || $content['analysis'] != null)
                         $list[$k]['analysis'] .= $vv['deptName'] . '：' . $content['analysis'] . '；';
                 }
+                $list[$k]['deptName'] = $v['deptNo'];
             }
         }
-
         return $list;
     }
 
